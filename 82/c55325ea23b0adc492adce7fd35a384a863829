@@ -1,0 +1,39 @@
+App/Info.plist
+  s_5b7efbe2213200::t_687583da5c1232 9-10
+README.md
+  s_5b7efbe2213200::t_4c5c5fa1f34576 9
+Sources/PhraseLilt/PhraseLiltApp.swift
+  s_91ecad86554d90::t_0324cd8fc2eff5 7,9-12,176-200,202-204,206-219,222,224-229,232-234,253-269,273,276-283,291-293,297,300-325
+Sources/PhraseLilt/ReviewView.swift
+  s_5b7efbe2213200::t_3d4c424e1017f4 20,36
+Sources/PhraseLilt/SettingsView.swift
+  s_5b7efbe2213200::t_b63b4e879e9c6a 81
+docs/ARCHITECTURE.md
+  s_5b7efbe2213200::t_90a011a5382956 15-17
+docs/BUILDING.md
+  s_5b7efbe2213200::t_202d4cf12d33c7 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "82c55325ea23b0adc492adce7fd35a384a863829",
+  "prompts": {},
+  "sessions": {
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    },
+    "s_91ecad86554d90": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b666-51fc-7c43-933e-5f296f4dbd48",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    }
+  }
+}
