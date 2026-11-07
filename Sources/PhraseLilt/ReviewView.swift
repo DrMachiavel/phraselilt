@@ -7,6 +7,7 @@ struct ReviewView: View {
   @ObservedObject var companion: Companion
   @ObservedObject var listening: Listening
   @ObservedObject var soundHints: SoundHints
+  @ObservedObject var soundModel: SoundModelSetup
   @AppStorage("voiceUS") private var voiceUS = ""
   @AppStorage("voiceUK") private var voiceUK = ""
   @AppStorage("retentionDays") private var days = 7
@@ -43,6 +44,12 @@ struct ReviewView: View {
           if let error = listening.error { Text(error).font(.callout) }
           if let error = companion.error { Text(error).font(.callout) }
         }.padding(28)
+      }
+      if !editing, !session.processing, !session.recording, !session.requestingMicrophone,
+        let clip = session.selected
+      {
+        analysisStatus(clip).frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 20).padding(.vertical, 12)
       }
       Divider()
       HStack {
@@ -117,7 +124,9 @@ struct ReviewView: View {
   }
   @ViewBuilder private func review(_ clip: Clip) -> some View {
     HStack {
-      Text(clip.captureSource == nil ? "A phrase to practise" : "A phrase from your day")
+      Text(
+        clip.practiceSegment == nil
+          ? "Full clip · \(Int(clip.duration.rounded())) sec" : "Selected passage")
       Spacer()
       Text(session.variety.rawValue)
     }.font(.caption).foregroundStyle(.secondary)
@@ -192,16 +201,6 @@ struct ReviewView: View {
         )
       }.buttonStyle(.bordered).disabled(editing || session.processing)
     }
-    if !editing, soundHints.matches(clip: clip, variety: session.variety) {
-      if soundHints.running {
-        HStack {
-          ProgressView().controlSize(.mini)
-          Text("Checking sounds…").font(.caption).foregroundStyle(.secondary)
-        }
-      } else if !soundHints.hints.isEmpty, let status = soundHints.status {
-        Text(status).font(.caption).foregroundStyle(.secondary)
-      }
-    }
     DisclosureGroup("Details") {
       VStack(alignment: .leading, spacing: 12) {
         if soundHints.matches(clip: clip, variety: session.variety), let status = soundHints.status
@@ -232,6 +231,33 @@ struct ReviewView: View {
         Button("Transcribe Again") { session.retryTranscription() }.disabled(session.processing)
       }.font(.callout).padding(.top, 10)
     }
+  }
+  @ViewBuilder private func analysisStatus(_ clip: Clip) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      if !model.automaticSoundHints {
+        Text("Sound hints paused").font(.callout)
+      } else if !soundModel.ready {
+        Text("Sound hints need setup in Settings").font(.callout)
+      } else if soundHints.matches(clip: clip, variety: session.variety),
+        let summary = soundHints.summary
+      {
+        HStack(spacing: 8) {
+          if soundHints.running {
+            ProgressView().controlSize(.mini)
+          } else {
+            Image(systemName: "waveform").accessibilityHidden(true)
+          }
+          Text(summary).font(.callout)
+        }
+        if !soundHints.hints.isEmpty, let status = soundHints.status {
+          Text(status).font(.caption).foregroundStyle(.secondary)
+        }
+      }
+      Text(
+        "Experimental · only six “th” words are supported; most pronunciation is not assessed."
+      )
+      .font(.caption).foregroundStyle(.secondary)
+    }.accessibilityElement(children: .combine)
   }
   private func highlighted(_ text: String, clip: Clip) -> AttributedString {
     var result = AttributedString(text)

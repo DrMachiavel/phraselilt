@@ -234,6 +234,7 @@ public struct SoundHintContext: Equatable, Sendable {
   @Published public private(set) var hints: [SoundHint] = []
   @Published public private(set) var running = false
   @Published public private(set) var status: String?
+  @Published public private(set) var summary: String?
   public private(set) var context: SoundHintContext?
   private var task: Task<Void, Never>?
   private var generation = UUID()
@@ -254,12 +255,16 @@ public struct SoundHintContext: Equatable, Sendable {
     clip.variety = variety
     let candidates = SoundHintRules.candidates(for: clip)
     guard !candidates.isEmpty else {
+      summary =
+        variety == .british
+        ? "Sound hints don’t support this reference yet" : "No supported words with usable timing"
       status =
         "No usable sound target here. This experiment checks six American-reference words with individual audio timings; other words and changed word counts are skipped."
       return
     }
     let current = generation
     running = true
+    summary = "Checking sounds…"
     let assessor = assessor
     task = Task { [weak self] in
       do {
@@ -267,6 +272,10 @@ public struct SoundHintContext: Equatable, Sendable {
         guard let self, self.generation == current, !Task.isCancelled else { return }
         self.hints = Array(result.prefix(2))
         self.running = false
+        self.summary =
+          result.isEmpty
+          ? "Checked \(candidates.count) \(candidates.count == 1 ? "word" : "words") · no comparison hint"
+          : "Possible sound to compare · experimental"
         self.status =
           result.isEmpty
           ? "No comparison hint found. This does not mean every sound was correct."
@@ -274,6 +283,7 @@ public struct SoundHintContext: Equatable, Sendable {
       } catch {
         guard let self, self.generation == current, !Task.isCancelled else { return }
         self.running = false
+        self.summary = "Sound check unavailable"
         self.status =
           "Sound check unavailable. Verify the sound model in Settings or try a clearer clip."
       }
@@ -287,6 +297,7 @@ public struct SoundHintContext: Equatable, Sendable {
     hints = []
     running = false
     status = nil
+    summary = nil
   }
 }
 

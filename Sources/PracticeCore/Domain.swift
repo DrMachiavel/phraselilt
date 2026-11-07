@@ -61,6 +61,16 @@ public struct Clip: Codable, Identifiable, Equatable, Sendable {
     self.duration = duration
     self.createdAt = createdAt
   }
+  /// Expand only untouched auto-selected wording; never replace a user's correction.
+  @discardableResult public mutating func expandAutomaticExcerpt() -> Bool {
+    guard captureSource != nil, let excerpt = practiceSegment,
+      intendedText == excerpt.text, !rawRecognition.isEmpty
+    else { return false }
+    if intendedText != rawRecognition { intentConfirmed = false }
+    intendedText = rawRecognition
+    practiceSegment = nil
+    return true
+  }
   public var canUseWordTiming: Bool {
     intentConfirmed && intendedText == rawRecognition && !words.isEmpty
   }

@@ -301,7 +301,7 @@ struct PopoverRoot: View {
       } else if let session = model.session, let companion = model.companion {
         ReviewView(
           model: model, session: session, companion: companion, listening: model.listening,
-          soundHints: model.soundHints)
+          soundHints: model.soundHints, soundModel: model.soundModel)
       } else {
         Text(model.startupError ?? "Couldn’t open PhraseLilt").padding()
       }

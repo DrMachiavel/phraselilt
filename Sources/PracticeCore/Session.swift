@@ -38,6 +38,13 @@ import Foundation
     self.transcriber = transcriber
     self.recordingLimit = recordingLimit
     self.variety = variety
+    for var clip in store.clips {
+      if clip.expandAutomaticExcerpt() {
+        do { try store.update(clip) } catch {
+          message = "Couldn’t expand an older clip. Existing recordings are unchanged."
+        }
+      }
+    }
     clips = store.clips
     selectedID = clips.first?.id
   }
@@ -179,7 +186,7 @@ import Foundation
       var clip = store.clips.first(where: { $0.id == current.clipID })
     else { return }
     processing = false
-    let mayChooseExcerpt =
+    let mayUseRecognition =
       clip.intendedText.isEmpty
       || (!clip.intentConfirmed && clip.intendedText == clip.rawRecognition
         && clip.practiceSegment == nil)
@@ -187,11 +194,9 @@ import Foundation
     clip.words = result.words.filter {
       $0.start >= 0 && $0.start + $0.duration <= clip.duration + 0.1
     }
-    if mayChooseExcerpt {
-      let eligible = Recognition(text: result.text, words: clip.words)
-      clip.practiceSegment =
-        clip.captureSource == nil ? nil : PracticeExcerpt.select(from: eligible)
-      clip.intendedText = clip.practiceSegment?.text ?? result.text
+    if mayUseRecognition {
+      clip.practiceSegment = nil
+      clip.intendedText = result.text
     }
     if result.text.isEmpty {
       message = "Couldn’t find speech. Enter the sentence or try again in a quieter place."

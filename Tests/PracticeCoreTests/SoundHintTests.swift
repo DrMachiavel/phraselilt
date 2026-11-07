@@ -213,3 +213,29 @@ func localAcousticSyntheticSpike() async throws {
     if name == "substituted" { #expect(hints.map(\.word).contains("think")) }
   }
 }
+
+private struct NoSoundFindings: SoundAssessing {
+  func assess(url: URL, candidates: [SoundCandidate]) async throws -> [SoundHint] { [] }
+}
+
+@Test @MainActor func visibleSummaryDistinguishesNoHintFromNoCoverage() async throws {
+  let hints = SoundHints(assessor: NoSoundFindings())
+  let clip = soundClip()
+  let url = URL(fileURLWithPath: "/unused.wav")
+  hints.update(clip: clip, url: url, variety: .american, ready: true, busy: false)
+  #expect(hints.summary == "Checking sounds…")
+  for _ in 0..<100 {
+    if !hints.running { break }
+    try await Task.sleep(for: .milliseconds(5))
+  }
+  #expect(hints.summary == "Checked 3 words · no comparison hint")
+  #expect(hints.hints.isEmpty)
+  hints.update(clip: clip, url: url, variety: .british, ready: true, busy: false)
+  #expect(hints.summary == "Sound hints don’t support this reference yet")
+  var unsupported = clip
+  unsupported.intendedText = "Say hello."
+  hints.update(clip: unsupported, url: url, variety: .american, ready: true, busy: false)
+  #expect(hints.summary == "No supported words with usable timing")
+  hints.cancel()
+  #expect(hints.summary == nil)
+}

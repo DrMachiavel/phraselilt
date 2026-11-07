@@ -360,3 +360,60 @@ private actor DeferredTranscriber: Transcribing {
   if await engine.ready() { await engine.fail() }
   session.shutdown()
 }
+
+@Test @MainActor func companionKeepsAllRecognizedSentencesVisible() async throws {
+  let root = temporary()
+  defer { try? FileManager.default.removeItem(at: root) }
+  let recognizer = DeferredTranscriber()
+  let session = PracticeSession(
+    store: try ClipStore(root: root), recorder: FakeRecorder(), transcriber: recognizer)
+  await session.startRecording(origin: "Wispr Flow")
+  session.finishRecording()
+  try await until { await recognizer.ready() }
+  let text = "Please open the browser. We can meet tomorrow."
+  let words = text.split(separator: " ").enumerated().map {
+    WordSegment(text: String($0.element), start: 0.05 + Double($0.offset) * 0.1, duration: 0.09)
+  }
+  await recognizer.succeed(Recognition(text: text, words: words))
+  try await until { !session.processing }
+  #expect(session.selected?.intendedText == text)
+  #expect(session.selected?.rawRecognition == text)
+  #expect(session.selected?.practiceSegment == nil)
+}
+
+@Test @MainActor func olderAutomaticExcerptsExpandWithoutOverwritingCorrectionsOrAudio() throws {
+  let root = temporary()
+  defer { try? FileManager.default.removeItem(at: root) }
+  let audio = try fixture(in: root.appendingPathComponent("input"))
+  let store = try ClipStore(root: root.appendingPathComponent("managed"))
+  var clip = try store.add(from: audio, variety: .american)
+  clip.captureSource = "Wispr Flow"
+  clip.rawRecognition = "Please open the browser. We can meet tomorrow."
+  clip.intendedText = "Please open the browser."
+  clip.practiceSegment = WordSegment(text: clip.intendedText, start: 0.1, duration: 0.4)
+  clip.intentConfirmed = true
+  try store.update(clip)
+  let original = try Data(contentsOf: store.audioURL(for: clip))
+  var corrected = try store.add(from: audio, variety: .american)
+  corrected.captureSource = "Wispr Flow"
+  corrected.rawRecognition = clip.rawRecognition
+  corrected.practiceSegment = clip.practiceSegment
+  corrected.intendedText = "Please open the application."
+  corrected.intentConfirmed = true
+  try store.update(corrected)
+  let session = PracticeSession(
+    store: store, recorder: FakeRecorder(), transcriber: DeferredTranscriber())
+  let expanded = try #require(session.clips.first { $0.id == clip.id })
+  #expect(expanded.intendedText == expanded.rawRecognition)
+  #expect(expanded.practiceSegment == nil)
+  #expect(!expanded.intentConfirmed)
+  #expect(try Data(contentsOf: store.audioURL(for: expanded)) == original)
+  #expect(session.clips.first { $0.id == corrected.id } == corrected)
+  var fullSentence = clip
+  fullSentence.intendedText = fullSentence.rawRecognition
+  fullSentence.practiceSegment = WordSegment(
+    text: fullSentence.rawRecognition, start: 0, duration: 1)
+  let removedRange = fullSentence.expandAutomaticExcerpt()
+  #expect(removedRange)
+  #expect(fullSentence.intentConfirmed)
+}
