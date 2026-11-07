@@ -1,0 +1,68 @@
+Tests/PracticeCoreTests/CompanionTests.swift
+  s_5b7efbe2213200::t_76d8f47570781e 1-219
+  s_5b7efbe2213200::t_44a8ca9a8dcd3e 220-328
+Sources/PracticeCore/PracticeExcerpt.swift
+  s_5b7efbe2213200::t_fa89818b89bdc1 1-36
+  s_5b7efbe2213200::t_813978d12b82f4 37-42
+Sources/PracticeCore/InputActivity.swift
+  s_5b7efbe2213200::t_1b875fc9391a8b 1-149
+  s_5b7efbe2213200::t_6f29c1bceb648c 150-206
+Sources/PracticeCore/Companion.swift
+  s_5b7efbe2213200::t_1b875fc9391a8b 1-96
+  s_5b7efbe2213200::t_ce5daf91a8c36e 97-153
+Sources/PracticeCore/Listening.swift
+  s_5b7efbe2213200::t_1d3b06ba92fe87 1-42
+  s_5b7efbe2213200::t_c8219f257938ec 43-51
+App/Info.plist
+  s_5b7efbe2213200::t_d765ef80af3aa1 9-10,13
+CONTRIBUTING.md
+  s_5b7efbe2213200::t_0a3aa0bb9b5e66 8-9
+README.md
+  s_5b7efbe2213200::t_c443cc64f8888c 9-18,20-22,47-53,55,59-61,70
+SECURITY.md
+  s_5b7efbe2213200::t_14f1518d865410 5
+Sources/PhraseLilt/PhraseLiltApp.swift
+  s_5b7efbe2213200::t_4a849ecac10f2f 1,3,11,13-14,18,20-34,36-38,40-45,50,54-57,62-67,73,78,80,84-94,100,102,107,109,111-113,117-131,134,137-171,174,181,184-185,188,190-191,198,208,220,223-226,236-238,240-246,249,253,255-256,263,266,271-284,286,293-295,305-311
+Sources/PhraseLilt/ReviewView.swift
+  s_5b7efbe2213200::t_5c53175d95dae4 7-8,11-14,20-21,24,26,30-31,33,35-37,40,42-44,48-58,62-71,73,77-90,93-94,96,99-111,115,117-118,122,127-130,132-136,138-167,169-187,189-190,194-207,209,213,217,219-221,223-233,235
+Sources/PhraseLilt/SettingsView.swift
+  s_5b7efbe2213200::t_7db40df5c5c091 7,15-37,40-51,53,56,63-64,66-67,69-78,81,83,87-88,90,93-98,100,107,112,115-120
+Sources/PracticeCore/AudioServices.swift
+  s_5b7efbe2213200::t_ee458cd9e2c052 9,11,25-26,30-35,47-51,56-60,71,78-79,93-97,113,120-123,134-136,148-191,210
+Sources/PracticeCore/Domain.swift
+  s_5b7efbe2213200::t_15ecc2032d22db 46-47
+Sources/PracticeCore/Session.swift
+  s_5b7efbe2213200::t_d28e8390fdd0b8 5,20,30,63-65,80,82,90-91,116,118-119,122,132-133,139,144-146,151-155,182-185,190-195
+Sources/SpeechProbe/main.swift
+  s_5b7efbe2213200::t_ff29c02de0d730 8-45
+THIRD_PARTY_NOTICES.md
+  s_5b7efbe2213200::t_39095ea4863545 5
+Tests/PracticeCoreTests/PracticeCoreTests.swift
+  s_5b7efbe2213200::t_c739e6dee530ac 32
+docs/ARCHITECTURE.md
+  s_5b7efbe2213200::t_56a1f2716cd80d 3,5,7,9,11,13,15
+docs/BUILDING.md
+  s_5b7efbe2213200::t_eafc04c0649d1b 20,22
+docs/COMPANION.md
+  s_5b7efbe2213200::t_3a8466a3dc2d66 1-26
+docs/EVALUATION.md
+  s_5b7efbe2213200::t_1cc1968e51f62f 20-22
+docs/PRIVACY.md
+  s_5b7efbe2213200::t_14ee107e2632bb 3,14-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "654ec90e06d12125db06598bf631e6850bd8a95d",
+  "prompts": {},
+  "sessions": {
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    }
+  }
+}
