@@ -1,0 +1,23 @@
+Sources/PracticeCore/SoundHints.swift
+  s_5b7efbe2213200::t_572905210fd1c1 72
+Tests/PracticeCoreTests/SoundHintTests.swift
+  s_5b7efbe2213200::t_9dc6f003ba8b32 242-251
+docs/MODELS.md
+  s_5b7efbe2213200::t_19b46e38b05b11 50-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "00ee9da0b91ceaac9edf19703582f2a77b2e2512",
+  "prompts": {},
+  "sessions": {
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    }
+  }
+}
