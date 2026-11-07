@@ -1,0 +1,81 @@
+App/Info.plist
+  s_5b7efbe2213200::t_5d9b9af698805d 9-10
+App/PhraseLilt.entitlements
+  s_5b7efbe2213200::t_0dc8226c32bbfa 5
+Package.resolved
+  s_5b7efbe2213200::t_df7a38d53da95d 1-14
+Package.swift
+  s_5b7efbe2213200::t_11d42e1e84be9c 9-10
+README.md
+  s_5b7efbe2213200::t_5dc213c442fdc5 22,49,51-53,72
+Sources/PhraseLilt/PhraseLiltApp.swift
+  s_5b7efbe2213200::t_5f1a78cb46d44e 18-19,61-64,75,90,114-115,224,234,240,281-283
+Sources/PhraseLilt/ReviewView.swift
+  s_5b7efbe2213200::t_7ac1346b68994e 9-10,84,87-97,152,155-159,163,201-224,249-258
+Sources/PhraseLilt/SettingsView.swift
+  s_5b7efbe2213200::t_0bd0f7bc1d75ae 56-58,127-150
+Sources/PracticeCore/SoundHints.swift
+  s_5b7efbe2213200::t_4634bdcb35f3bd 1-275
+Sources/PracticeCore/SoundModel.swift
+  s_5b7efbe2213200::t_3fb3a24e5296b2 1-145
+THIRD_PARTY_NOTICES.md
+  s_5b7efbe2213200::t_438589154a3322 1,3,5-7,9
+Tests/PracticeCoreTests/SoundHintTests.swift
+  s_2defa29d3eb2a8::t_cde6dc617c4d75 1-141
+ThirdParty/ONNXRuntime-LICENSE.txt
+  s_5b7efbe2213200::t_8296ca8705029e 1-21
+ThirdParty/ONNXRuntime-ThirdPartyNotices.txt
+  s_f9b6e9a2a75146::t_d8a04a2f383753 1-6121
+ThirdParty/Wav2Vec2-APACHE-2.0.txt
+  s_f9b6e9a2a75146::t_f00f0df3be1c9f 1-202
+docs/ARCHITECTURE.md
+  s_5b7efbe2213200::t_1b02cef7a80e3e 18-19
+docs/BUILDING.md
+  s_5b7efbe2213200::t_f68fc37e71f1ab 3
+docs/COMPANION.md
+  s_5b7efbe2213200::t_87147669b97542 22
+docs/EVALUATION.md
+  s_5b7efbe2213200::t_5e60a9df2de8e2 3,20,23-34
+docs/MODELS.md
+  s_5b7efbe2213200::t_4720ae42ce123b 29,31,36-47
+docs/PRIVACY.md
+  s_5b7efbe2213200::t_055af83ca65d8b 3,18-21
+scripts/build-app.sh
+  s_5b7efbe2213200::t_9fb5be79dc6b07 9-11
+scripts/create-sound-fixtures.py
+  s_5b7efbe2213200::t_2d79db00b2a9e8 1-30
+scripts/review-dependencies.py
+  s_5b7efbe2213200::t_555b773bb35c70 1,4,7-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6e096cce3226d6fc787622d658a1e0f80940e3c4",
+  "prompts": {},
+  "sessions": {
+    "s_2defa29d3eb2a8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b6f6-c48e-7033-be64-ec0f21d44ce6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    },
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    },
+    "s_f9b6e9a2a75146": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b639-f825-7601-a3b8-cce0747e259a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    }
+  }
+}
