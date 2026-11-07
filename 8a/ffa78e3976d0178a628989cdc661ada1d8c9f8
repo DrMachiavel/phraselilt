@@ -1,0 +1,91 @@
+.github/dependabot.yml
+  s_5b7efbe2213200::t_efb4abf8c3b17e 1-6
+.github/workflows/ci.yml
+  s_5b7efbe2213200::t_fab1413527b99f 1-21
+.gitignore
+  s_5b7efbe2213200::t_a95d9c235383d1 1-18
+App/Info.plist
+  s_5b7efbe2213200::t_bb657a90a80605 1-16
+App/PhraseLilt.entitlements
+  s_5b7efbe2213200::t_61494646e653d9 1-7
+CONTRIBUTING.md
+  s_5b7efbe2213200::t_8b483202e0c555 1-7
+LICENSE
+  s_5b7efbe2213200::t_c6d8e954523550 1-131
+NOTICE
+  s_5b7efbe2213200::t_2dfd7658b26d9d 1
+Package.swift
+  s_5b7efbe2213200::t_9c05427f1125da 1-13
+README.md
+  s_5b7efbe2213200::t_f58e8863219202 1-68
+SECURITY.md
+  s_5b7efbe2213200::t_6d3b5c5c0a5ee2 1-7
+Sources/PhraseLilt/Assets.swift
+  s_5b7efbe2213200::t_34ef8da9dab289 1-38
+Sources/PhraseLilt/PhraseLiltApp.swift
+  s_5b7efbe2213200::t_5bd92a4f3c2ad7 1-210
+Sources/PhraseLilt/ReviewView.swift
+  s_f9b6e9a2a75146::t_b10eee1629d964 1-327
+Sources/PhraseLilt/SettingsView.swift
+  s_5b7efbe2213200::t_bcc1fee5958c3b 1-99
+Sources/PhraseLilt/Shortcut.swift
+  s_5b7efbe2213200::t_fb8415b89ff711 1-100
+Sources/PracticeCore/AudioServices.swift
+  s_5b7efbe2213200::t_c352db588b3496 1-144
+Sources/PracticeCore/Domain.swift
+  s_5b7efbe2213200::t_c4edcced010d91 1-106
+Sources/PracticeCore/LocalSpeech.swift
+  s_5b7efbe2213200::t_f6ff91f8715075 1-60
+Sources/PracticeCore/ModelSetup.swift
+  s_5b7efbe2213200::t_c02d2d97f9c17d 1-63
+Sources/PracticeCore/Session.swift
+  s_5b7efbe2213200::t_36600235c117b3 1-236
+Sources/PracticeCore/Storage.swift
+  s_5b7efbe2213200::t_949fa7ef42ecfc 1-153
+Sources/SpeechProbe/main.swift
+  s_5b7efbe2213200::t_a15c10a2e80d75 1-49
+THIRD_PARTY_NOTICES.md
+  s_5b7efbe2213200::t_99281256e1d05a 1-9
+Tests/PracticeCoreTests/PracticeCoreTests.swift
+  s_5b7efbe2213200::t_b9459fd8c912e5 1-362
+docs/ARCHITECTURE.md
+  s_5b7efbe2213200::t_abf5c62f988d0d 1-15
+docs/BUILDING.md
+  s_5b7efbe2213200::t_dd760ae9ea0d96 1-22
+docs/EVALUATION.md
+  s_5b7efbe2213200::t_8f38746188a4db 1-20
+docs/MODELS.md
+  s_5b7efbe2213200::t_dc2edc8ee88f66 1-27
+docs/PRIVACY.md
+  s_5b7efbe2213200::t_fdc97baac54ab5 1-13
+scripts/build-app.sh
+  s_5b7efbe2213200::t_53ab4ba8192ce2 1-12
+scripts/check.sh
+  s_5b7efbe2213200::t_6bc337628b59d6 1-7
+scripts/review-dependencies.py
+  s_5b7efbe2213200::t_0f38857af7a6b5 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8affa78e3976d0178a628989cdc661ada1d8c9f8",
+  "prompts": {},
+  "sessions": {
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DrMachiavel <elliot.boucher.pro@gmail.com>"
+    },
+    "s_f9b6e9a2a75146": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b639-f825-7601-a3b8-cce0747e259a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DrMachiavel <elliot.boucher.pro@gmail.com>"
+    }
+  }
+}
