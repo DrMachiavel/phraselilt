@@ -23,6 +23,13 @@ import SwiftUI
   private var workspaceObservers: [NSObjectProtocol] = []
   private var retentionTimer: Timer?
   private var clipsSubscription: AnyCancellable?
+  private var soundSubscriptions = Set<AnyCancellable>()
+  @Published var automaticSoundHints = true {
+    didSet {
+      UserDefaults.standard.set(automaticSoundHints, forKey: "automaticSoundHints")
+      refreshSoundHints()
+    }
+  }
   private var initialized = false
   private var enableRequest = UUID()
   @Published private(set) var enabling = false
@@ -43,11 +50,14 @@ import SwiftUI
     listening = Listening(audio: playback)
     super.init()
     let defaults = UserDefaults.standard
-    defaults.register(defaults: ["followWispr": true, "dailyNudge": true])
+    defaults.register(defaults: [
+      "followWispr": true, "dailyNudge": true, "automaticSoundHints": true,
+    ])
     followWispr = defaults.bool(forKey: "followWispr")
     followGranola = defaults.bool(forKey: "followGranola")
     followOtherApps = defaults.bool(forKey: "followOtherApps")
     dailyNudge = defaults.bool(forKey: "dailyNudge")
+    automaticSoundHints = defaults.bool(forKey: "automaticSoundHints")
     do {
       let store = try ClipStore()
       let recorder = MicrophoneRecorder()
@@ -140,11 +150,25 @@ import SwiftUI
         defaults.bool(forKey: "companionEnabled")
         && AVAudioApplication.shared.recordPermission == .granted
       initialized = true
+      session.objectWillChange.receive(on: RunLoop.main).sink { [weak self] _ in
+        self?.refreshSoundHints()
+      }.store(in: &soundSubscriptions)
+      soundModel.$ready.receive(on: RunLoop.main).sink { [weak self] _ in
+        self?.refreshSoundHints()
+      }.store(in: &soundSubscriptions)
+      refreshSoundHints()
       updateConfiguration()
     } catch {
       startupError =
         "Couldn’t open local history. Check free space and storage access, then relaunch. Existing history has not been reset."
     }
+  }
+  private func refreshSoundHints() {
+    guard initialized, let session else { return }
+    soundHints.update(
+      clip: session.selected, url: session.selected.map { session.store.audioURL(for: $0) },
+      variety: session.variety, ready: soundModel.ready && automaticSoundHints,
+      busy: session.processing || session.recording || session.requestingMicrophone)
   }
   func setCompanionEnabled(_ enabled: Bool) {
     enableRequest = UUID()
@@ -179,8 +203,8 @@ import SwiftUI
         other: followOtherApps))
   }
   private func resumeCompanion() {
-    guard companionEnabled else { return }
-    updateConfiguration()
+    if companionEnabled { updateConfiguration() }
+    refreshSoundHints()
   }
   func installStatusItem() {
     guard statusItem == nil else { return }
@@ -221,7 +245,6 @@ import SwiftUI
     guard let button = statusItem?.button else { return }
     nudgeReady = false
     showsSettings = settings
-    if settings { soundHints.cancel() }
     popover.animates = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     if !popover.isShown {
       popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -231,13 +254,11 @@ import SwiftUI
   }
   func openSettings() {
     listening.stop()
-    soundHints.cancel()
     showsSettings = true
   }
   @objc func showSettingsFromMenu() { showPopover(settings: true) }
   func popoverDidClose(_ notification: Notification) {
     listening.stop()
-    soundHints.cancel()
     showsSettings = false
   }
   func importAudio() {
@@ -280,7 +301,7 @@ struct PopoverRoot: View {
       } else if let session = model.session, let companion = model.companion {
         ReviewView(
           model: model, session: session, companion: companion, listening: model.listening,
-          soundHints: model.soundHints, soundModel: model.soundModel)
+          soundHints: model.soundHints)
       } else {
         Text(model.startupError ?? "Couldn’t open PhraseLilt").padding()
       }

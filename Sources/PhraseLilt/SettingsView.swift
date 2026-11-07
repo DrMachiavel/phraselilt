@@ -54,7 +54,7 @@ struct SettingsView: View {
         }
       }
       Section("Sound Hints · Experimental") {
-        SoundSetupView(setup: model.soundModel)
+        SoundSetupView(setup: model.soundModel, enabled: $model.automaticSoundHints)
       }
       Section("Local History") {
         Picker("Delete unsaved clips after", selection: $days) {
@@ -127,7 +127,9 @@ private struct AssetSettings: View {
 
 private struct SoundSetupView: View {
   @ObservedObject var setup: SoundModelSetup
+  @Binding var enabled: Bool
   var body: some View {
+    Toggle("Automatic Sound Hints", isOn: $enabled)
     Text(
       "Try a small acoustic experiment for “th” in think, thing, things, three, thank and thanks. American reference only. It can miss differences or suggest a valid accent variant."
     )
@@ -142,7 +144,7 @@ private struct SoundSetupView: View {
       Button("Download Sound Model · 355 MB") { setup.install() }
     }
     Text(
-      "Optional. Downloads from Hugging Face; no audio is sent. Keep 1 GB free; analysis may use about 1 GB of memory. Then check your wording and choose Check Sounds on a clip. Download cancellation restarts the unfinished file."
+      "Optional. Downloads from Hugging Face; no audio is sent. Keep 1 GB free; analysis may use about 1 GB of memory. Hints appear automatically after a clip is prepared. Edit the wording if needed. Download cancellation restarts the unfinished file."
     )
     .font(.caption).foregroundStyle(.secondary)
     if let error = setup.error { Text(error).font(.caption) }

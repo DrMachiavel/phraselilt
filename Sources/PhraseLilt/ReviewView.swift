@@ -7,7 +7,6 @@ struct ReviewView: View {
   @ObservedObject var companion: Companion
   @ObservedObject var listening: Listening
   @ObservedObject var soundHints: SoundHints
-  @ObservedObject var soundModel: SoundModelSetup
   @AppStorage("voiceUS") private var voiceUS = ""
   @AppStorage("voiceUK") private var voiceUK = ""
   @AppStorage("retentionDays") private var days = 7
@@ -81,19 +80,13 @@ struct ReviewView: View {
     }.frame(minWidth: 360, minHeight: 380)
       .onChange(of: session.selectedID) {
         listening.stop()
-        soundHints.cancel()
         editing = false
       }
       .onChange(of: session.variety) {
         listening.stop()
-        soundHints.cancel()
       }
-      .onChange(of: session.selected?.rawRecognition) { soundHints.cancel() }
-      .onChange(of: session.selected?.words) { soundHints.cancel() }
-      .onChange(of: session.recording) { soundHints.cancel() }
       .onChange(of: session.selected?.intendedText) {
         listening.stop()
-        soundHints.cancel()
       }
       .confirmationDialog("Delete this clip and its local data?", isPresented: $deleting) {
         Button("Delete Clip", role: .destructive) {
@@ -149,18 +142,19 @@ struct ReviewView: View {
       }
       .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     } else {
-      Text(highlighted(clip.intendedText.isEmpty ? "What did you say?" : clip.intendedText))
-        .font(.system(.title, design: .default)).fixedSize(horizontal: false, vertical: true)
-        .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityHint(
-          soundHints.hints.isEmpty
-            ? ""
-            : "Experimental practice target: th in "
-              + soundHints.hints.map(\.word).joined(separator: ", "))
+      Text(
+        highlighted(clip.intendedText.isEmpty ? "What did you say?" : clip.intendedText, clip: clip)
+      )
+      .font(.system(.title, design: .default)).fixedSize(horizontal: false, vertical: true)
+      .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+      .accessibilityHint(
+        !soundHints.matches(clip: clip, variety: session.variety) || soundHints.hints.isEmpty
+          ? ""
+          : "Experimental practice target: th in "
+            + soundHints.hints.map(\.word).joined(separator: ", "))
       Button(clip.intendedText.isEmpty ? "Enter Wording" : "Edit Wording") {
         listening.stop()
         session.cancelAnalysis()
-        soundHints.cancel()
         draft = clip.intendedText
         editing = true
       }.font(.caption).disabled(session.processing)
@@ -198,32 +192,25 @@ struct ReviewView: View {
         )
       }.buttonStyle(.bordered).disabled(editing || session.processing)
     }
-    if soundModel.ready {
-      VStack(alignment: .leading, spacing: 8) {
-        if soundHints.running {
-          HStack {
-            ProgressView().controlSize(.small)
-            Text("Checking sounds locally…")
-            Button("Cancel") { soundHints.cancel() }
-          }
-        } else {
-          Button("Check Sounds · Experimental") {
-            listening.stop()
-            session.confirmIntent()
-            // Capture confirmed intent independently of the raw recognition result.
-            if var confirmed = session.selected {
-              confirmed.variety = session.variety
-              soundHints.check(clip: confirmed, url: session.store.audioURL(for: confirmed))
-            }
-          }.disabled(editing || session.processing)
+    if !editing, soundHints.matches(clip: clip, variety: session.variety) {
+      if soundHints.running {
+        HStack {
+          ProgressView().controlSize(.mini)
+          Text("Checking sounds…").font(.caption).foregroundStyle(.secondary)
         }
-        if let status = soundHints.status {
-          Text(status).font(.caption).foregroundStyle(.secondary)
-        }
+      } else if !soundHints.hints.isEmpty, let status = soundHints.status {
+        Text(status).font(.caption).foregroundStyle(.secondary)
       }
     }
     DisclosureGroup("Details") {
       VStack(alignment: .leading, spacing: 12) {
+        if soundHints.matches(clip: clip, variety: session.variety), let status = soundHints.status
+        {
+          Text(status)
+        }
+        Text(
+          "Automatic hints use the displayed wording as a working assumption. Edit it if recognition got it wrong. Hints can be mistaken; accent variants are valid."
+        )
         if let caution = session.caution { Text(caution) }
         Text(
           "Raw recognition: \(clip.rawRecognition.isEmpty ? "Unavailable" : clip.rawRecognition)"
@@ -246,8 +233,9 @@ struct ReviewView: View {
       }.font(.callout).padding(.top, 10)
     }
   }
-  private func highlighted(_ text: String) -> AttributedString {
+  private func highlighted(_ text: String, clip: Clip) -> AttributedString {
     var result = AttributedString(text)
+    guard soundHints.matches(clip: clip, variety: session.variety), !editing else { return result }
     for hint in soundHints.hints {
       guard let range = Range(hint.range, in: text), let attributedRange = Range(range, in: result)
       else { continue }

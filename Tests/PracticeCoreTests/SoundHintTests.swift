@@ -16,11 +16,12 @@ private func soundClip() -> Clip {
   return clip
 }
 
-@Test func soundCandidatesRequireConfirmedIntentAndIndividualWordTiming() {
+@Test func soundCandidatesUseProvisionalWordingAndIndividualWordTiming() {
   var clip = soundClip()
   #expect(SoundHintRules.candidates(for: clip).map(\.word) == ["think", "three", "things"])
   clip.intentConfirmed = false
-  #expect(SoundHintRules.candidates(for: clip).isEmpty)
+  #expect(SoundHintRules.candidates(for: clip).count == 3)
+  #expect(!clip.intentConfirmed)
   clip.intentConfirmed = true
   clip.intendedText = "Sink all three things."
   #expect(SoundHintRules.candidates(for: clip).isEmpty)
@@ -29,6 +30,28 @@ private func soundClip() -> Clip {
   #expect(SoundHintRules.candidates(for: clip).isEmpty)
   clip = soundClip()
   clip.variety = .british
+  #expect(SoundHintRules.candidates(for: clip).isEmpty)
+}
+
+@Test func unrelatedCompoundRunDoesNotDiscardIndividuallyTimedTarget() {
+  var clip = soundClip()
+  clip.intendedText = "I think my mother-in-law is here."
+  clip.rawRecognition = clip.intendedText
+  clip.duration = 4
+  clip.words = [
+    WordSegment(text: "I", start: 0.1, duration: 0.1),
+    WordSegment(text: "think", start: 0.25, duration: 0.3),
+    WordSegment(text: "my", start: 0.6, duration: 0.2),
+    WordSegment(text: "mother-in-law", start: 0.9, duration: 1.1),
+    WordSegment(text: "is", start: 2.1, duration: 0.2),
+    WordSegment(text: "here.", start: 2.4, duration: 0.4),
+  ]
+  clip.practiceSegment = WordSegment(text: clip.intendedText, start: 0.1, duration: 2.7)
+  clip.intentConfirmed = false
+  let candidates = SoundHintRules.candidates(for: clip)
+  #expect(candidates.map(\.word) == ["think"])
+  #expect(candidates.first?.range == NSRange(location: 2, length: 2))
+  clip.words[1].text = "think three"
   #expect(SoundHintRules.candidates(for: clip).isEmpty)
 }
 
@@ -79,7 +102,9 @@ private actor DelayedSoundAssessor: SoundAssessing {
 @Test @MainActor func soundCancellationRejectsLateFindings() async throws {
   let assessor = DelayedSoundAssessor()
   let hints = SoundHints(assessor: assessor)
-  hints.check(clip: soundClip(), url: URL(fileURLWithPath: "/unused.wav"))
+  hints.update(
+    clip: soundClip(), url: URL(fileURLWithPath: "/unused.wav"), variety: .american, ready: true,
+    busy: false)
   for _ in 0..<100 {
     if await assessor.ready() { break }
     try await Task.sleep(for: .milliseconds(5))
@@ -91,6 +116,55 @@ private actor DelayedSoundAssessor: SoundAssessing {
   #expect(hints.hints.isEmpty)
   #expect(!hints.running)
   #expect(hints.status == nil)
+}
+
+private actor CountingSoundAssessor: SoundAssessing {
+  var calls = 0
+  func assess(url: URL, candidates: [SoundCandidate]) async throws -> [SoundHint] {
+    calls += 1
+    return [SoundHint(range: candidates[0].range, word: candidates[0].word)]
+  }
+  func count() -> Int { calls }
+}
+
+@Test @MainActor func automaticSoundChecksWaitForPreparationAndDeduplicateUnchangedAudio()
+  async throws
+{
+  let assessor = CountingSoundAssessor()
+  let hints = SoundHints(assessor: assessor)
+  var clip = soundClip()
+  clip.intentConfirmed = false
+  let url = URL(fileURLWithPath: "/unused.wav")
+  hints.update(clip: clip, url: url, variety: .american, ready: true, busy: true)
+  #expect(await assessor.count() == 0)
+  hints.update(clip: clip, url: url, variety: .american, ready: true, busy: false)
+  for _ in 0..<100 {
+    if !hints.running { break }
+    try await Task.sleep(for: .milliseconds(5))
+  }
+  #expect(await assessor.count() == 1)
+  #expect(!hints.hints.isEmpty)
+  #expect(!clip.intentConfirmed)
+  clip.saved = true
+  clip.intentConfirmed = true
+  hints.update(clip: clip, url: url, variety: .american, ready: true, busy: false)
+  #expect(await assessor.count() == 1)
+  #expect(hints.matches(clip: clip, variety: .american))
+  #expect(!hints.matches(clip: clip, variety: .british))
+  var replacement = clip
+  replacement.id = UUID()
+  #expect(!hints.matches(clip: replacement, variety: .american))
+  hints.update(clip: replacement, url: url, variety: .american, ready: false, busy: false)
+  #expect(hints.hints.isEmpty)
+  hints.update(clip: replacement, url: url, variety: .american, ready: true, busy: false)
+  for _ in 0..<100 {
+    if !hints.running { break }
+    try await Task.sleep(for: .milliseconds(5))
+  }
+  #expect(await assessor.count() == 2)
+  hints.update(clip: nil, url: nil, variety: .american, ready: true, busy: false)
+  #expect(hints.hints.isEmpty)
+  #expect(hints.context == nil)
 }
 
 @Test func soundModelRejectsWrongSizeAndDigest() throws {

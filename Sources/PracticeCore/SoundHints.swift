@@ -36,7 +36,7 @@ public enum SoundHintRules {
     "thank": ["æ", "ŋ", "k"], "thanks": ["æ", "ŋ", "k", "s"],
   ]
   public static func candidates(for clip: Clip) -> [SoundCandidate] {
-    guard clip.intentConfirmed, clip.variety == .american else { return [] }
+    guard clip.variety == .american else { return [] }
     let excerpt = clip.practiceSegment
     let pattern = try! NSRegularExpression(pattern: "[A-Za-z]+(?:['’][A-Za-z]+)?")
     let text = clip.intendedText as NSString
@@ -51,20 +51,24 @@ public enum SoundHintRules {
       return $0.start >= excerpt.start - 0.01
         && $0.start + $0.duration <= excerpt.start + excerpt.duration + 0.01
     }
-    // Same-length corrections can reuse approximate ASR word windows, never their
-    // lexical judgement. Acoustic onset/context evidence must independently support a hint.
-    // Changed word counts need realignment and abstain in this small prototype.
-    guard matches.count == timed.count, sourceMatches.count == timed.count else { return [] }
+    // Flatten textual runs without inventing timings inside compounds/chunks.
+    // A multi-token run elsewhere must not invalidate a separately timed target.
+    let located = timed.flatMap { word -> [(String, WordSegment, Bool)] in
+      let label = word.text as NSString
+      let tokens = pattern.matches(in: word.text, range: NSRange(location: 0, length: label.length))
+      return tokens.map { (label.substring(with: $0.range).lowercased(), word, tokens.count == 1) }
+    }
+    guard matches.count == located.count, sourceMatches.count == located.count else { return [] }
+    guard
+      zip(sourceMatches, located).allSatisfy({
+        source.substring(with: $0.0.range).lowercased() == $0.1.0
+      })
+    else { return [] }
     var result: [SoundCandidate] = []
-    for (index, pair) in zip(matches, timed).enumerated() {
-      let (match, word) = pair
+    for (match, locatedWord) in zip(matches, located) {
       let expected = text.substring(with: match.range).lowercased()
-      let labels = pattern.matches(
-        in: word.text, range: NSRange(location: 0, length: (word.text as NSString).length))
-      guard labels.count == 1,
-        (word.text as NSString).substring(with: labels[0].range).lowercased()
-          == source.substring(with: sourceMatches[index].range).lowercased()
-      else { return [] }
+      let (_, word, individuallyTimed) = locatedWord
+      guard individuallyTimed else { continue }
       if let tail = tails[expected], word.duration >= 0.15, word.duration <= 1.5,
         word.start >= 0.08, word.start + word.duration <= clip.duration - 0.08
       {
@@ -207,20 +211,51 @@ public actor LocalSoundAssessor: SoundAssessing {
   }
 }
 
+public struct SoundHintContext: Equatable, Sendable {
+  let clipID: UUID
+  let text: String
+  let raw: String
+  let words: [WordSegment]
+  let excerpt: WordSegment?
+  let duration: Double
+  let variety: ReferenceVariety
+  public init(clip: Clip, variety: ReferenceVariety) {
+    clipID = clip.id
+    text = clip.intendedText
+    raw = clip.rawRecognition
+    words = clip.words
+    excerpt = clip.practiceSegment
+    duration = clip.duration
+    self.variety = variety
+  }
+}
+
 @MainActor public final class SoundHints: ObservableObject {
   @Published public private(set) var hints: [SoundHint] = []
   @Published public private(set) var running = false
   @Published public private(set) var status: String?
+  public private(set) var context: SoundHintContext?
   private var task: Task<Void, Never>?
   private var generation = UUID()
   private let assessor: any SoundAssessing
   public init(assessor: any SoundAssessing = LocalSoundAssessor()) { self.assessor = assessor }
-  public func check(clip: Clip, url: URL) {
+  public func matches(clip: Clip, variety: ReferenceVariety) -> Bool {
+    context == SoundHintContext(clip: clip, variety: variety)
+  }
+  public func update(clip: Clip?, url: URL?, variety: ReferenceVariety, ready: Bool, busy: Bool) {
+    guard ready, !busy, var clip, let url, !clip.intendedText.isEmpty else {
+      if context != nil { cancel() }
+      return
+    }
+    let next = SoundHintContext(clip: clip, variety: variety)
+    guard context != next else { return }
     cancel()
+    context = next
+    clip.variety = variety
     let candidates = SoundHintRules.candidates(for: clip)
     guard !candidates.isEmpty else {
       status =
-        "Couldn’t check this sentence. Try a short American-reference sentence with think, thing, things, three, thank or thanks. Individual word timings are needed; changes to the word count need a new recording."
+        "No usable sound target here. This experiment checks six American-reference words with individual audio timings; other words and changed word counts are skipped."
       return
     }
     let current = generation
@@ -234,13 +269,13 @@ public actor LocalSoundAssessor: SoundAssessing {
         self.running = false
         self.status =
           result.isEmpty
-          ? "No sound hint found. This does not mean every sound was correct."
-          : "Compare the underlined “th” with Reference. This experimental hint may be wrong; accent variants are valid."
+          ? "No comparison hint found. This does not mean every sound was correct."
+          : "Compare the underlined “th” with Reference · experimental."
       } catch {
         guard let self, self.generation == current, !Task.isCancelled else { return }
         self.running = false
         self.status =
-          "Couldn’t check the sounds. Check the sound model in Settings, or try a clearer recording."
+          "Sound check unavailable. Verify the sound model in Settings or try a clearer clip."
       }
     }
   }
@@ -248,6 +283,7 @@ public actor LocalSoundAssessor: SoundAssessing {
     generation = UUID()
     task?.cancel()
     task = nil
+    context = nil
     hints = []
     running = false
     status = nil
