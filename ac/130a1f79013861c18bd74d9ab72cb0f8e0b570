@@ -1,0 +1,39 @@
+App/Info.plist
+  s_f9b6e9a2a75146::t_7ceab1c9b53dfd 9-10
+README.md
+  s_f9b6e9a2a75146::t_2d4bedc8ea445d 10,70
+Sources/PhraseLilt/ReviewView.swift
+  s_5b7efbe2213200::t_0aa034d153288f 150-160,162-179,181
+Sources/PracticeCore/Listening.swift
+  s_5b7efbe2213200::t_ec28092cda6e3b 19,22-32,34,38,44-47
+Tests/PracticeCoreTests/CompanionTests.swift
+  s_5b7efbe2213200::t_b37c4e02899776 248,251,255-264,266,268,271,277-278,290-291,326,330,332
+docs/ARCHITECTURE.md
+  s_f9b6e9a2a75146::t_0e39004d90771d 11
+docs/MODELS.md
+  s_f9b6e9a2a75146::t_f245f7897c8b44 19-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ac130a1f79013861c18bd74d9ab72cb0f8e0b570",
+  "prompts": {},
+  "sessions": {
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    },
+    "s_f9b6e9a2a75146": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b639-f825-7601-a3b8-cce0747e259a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    }
+  }
+}
