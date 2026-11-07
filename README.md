@@ -7,7 +7,7 @@ Speech recognition can understand you even when pronunciation differs from your 
 ## Current capabilities
 
 - Click **PL** to open the full practice interface directly below the menu-bar icon. One compact native popover, with Settings and Back inside it; no separate practice window or Open Practice step. Click outside to dismiss.
-- **Listen** plays the selected English reference, then your original audio, in one action. When existing timestamps precisely bound a complete sentence of at most 12 seconds, the companion offers that short excerpt; otherwise it keeps the full clip. The original recording stays available in Details. Edit wording only when recognition got it wrong.
+- **Hear Reference** plays only the selected English reference. The smaller **Hear My Recording** button below plays your audio when you choose. When existing timestamps precisely bound a complete sentence of at most 12 seconds, the companion offers that short excerpt; otherwise it keeps the full clip. The original recording stays available in Details. Edit wording only when recognition got it wrong.
 - **Opt-in companion capture:** follow Wispr Flow's microphone activity without registering, observing or changing Fn. Granola is an experimental selectable source. Other microphone apps are separately opt-in and may include calls.
 - Recording is a separate local microphone capture, not a recording imported from those apps. No private APIs, app databases, account connections, or transcript scraping are used.
 - Only sources using the **current default input device** are eligible. Non-default or unidentified input streams are skipped. Changing the default device cancels capture.
@@ -67,7 +67,7 @@ On the development M5, a synthetic 2.10 s sentence transcribed correctly into se
 
 See [privacy and retention](docs/PRIVACY.md), [architecture](docs/ARCHITECTURE.md), [model decisions](docs/MODELS.md), and [signing](docs/BUILDING.md). Files use private app storage and file permissions, without application-level encryption. Backups may retain deleted material. No secure-erasure claim.
 
-The native companion Settings, opt-in toggles, source-triggered recording/transcription, sanitized import and one-action Reference → You completion were exercised through accessibility automation. Updated light/dark and small-window layouts were visually inspected. Remaining verification includes real input-device and sleep/session interruption, unchanged Flow text insertion, headset behavior, Granola boundaries, full machine-network-disabled operation, VoiceOver auditory review and increased contrast/Reduce Motion checks. These checks do not establish validated pronunciation diagnosis; assessment remains unavailable.
+The native companion Settings, opt-in toggles, source-triggered recording/transcription, sanitized import and independent reference/recording playback were exercised through accessibility automation. Updated light/dark and small-window layouts were visually inspected. Remaining verification includes real input-device and sleep/session interruption, unchanged Flow text insertion, headset behavior, Granola boundaries, full machine-network-disabled operation, VoiceOver auditory review and increased contrast/Reduce Motion checks. These checks do not establish validated pronunciation diagnosis; assessment remains unavailable.
 
 ## License
 

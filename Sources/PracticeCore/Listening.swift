@@ -16,27 +16,35 @@ import Foundation
   private var task: Task<Void, Never>?
   private var generation = UUID()
   public init(audio: any ListeningAudio) { self.audio = audio }
-  public func play(
-    text: String, url: URL, variety: ReferenceVariety, voiceID: String?, segment: WordSegment? = nil
-  ) {
+  public func playReference(text: String, variety: ReferenceVariety, voiceID: String?) {
     stop()
-    error = nil
     guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+    start(phase: .reference) { [audio] in
+      try await audio.reference(text, variety: variety, voiceID: voiceID)
+    }
+  }
+  public func playRecording(url: URL, segment: WordSegment? = nil) {
+    stop()
+    start(phase: .you) { [audio] in
+      try await audio.recording(url, segment: segment)
+    }
+  }
+  private func start(phase: Phase, operation: @escaping @MainActor () async throws -> Void) {
     let current = generation
-    phase = .reference
+    self.phase = phase
     task = Task { [weak self] in
       guard let self, self.generation == current, !Task.isCancelled else { return }
       do {
-        try await self.audio.reference(text, variety: variety, voiceID: voiceID)
-        guard self.generation == current, !Task.isCancelled else { return }
-        self.phase = .you
-        try await self.audio.recording(url, segment: segment)
+        try await operation()
         guard self.generation == current, !Task.isCancelled else { return }
         self.phase = .done
       } catch {
         guard self.generation == current, !Task.isCancelled else { return }
         self.phase = .idle
-        self.error = "Couldn’t finish playback. Check the installed reference voice and try again."
+        self.error =
+          phase == .reference
+          ? "Couldn’t play the reference. Check the installed voice in Settings and try again."
+          : "Couldn’t play your recording. Try importing the original again."
       }
     }
   }

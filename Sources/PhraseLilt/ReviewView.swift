@@ -147,44 +147,39 @@ struct ReviewView: View {
         editing = true
       }.font(.caption).disabled(session.processing)
     }
-    if listening.isPlaying {
-      HStack(spacing: 12) {
+    VStack(spacing: 12) {
+      Button {
+        if listening.phase == .reference {
+          listening.stop()
+          return
+        }
+        session.confirmIntent()
+        listening.playReference(
+          text: clip.intendedText, variety: session.variety,
+          voiceID: session.variety == .american ? voiceUS : voiceUK)
+      } label: {
         Label(
-          "Reference",
-          systemImage: listening.phase == .reference ? "speaker.wave.2.fill" : "speaker"
+          listening.phase == .reference ? "Stop Reference" : "Hear Reference",
+          systemImage: listening.phase == .reference ? "stop.fill" : "speaker.wave.2"
+        ).frame(maxWidth: .infinity)
+      }.buttonStyle(.borderedProminent).controlSize(.large)
+        .disabled(
+          editing || session.processing
+            || clip.intendedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+      Button {
+        if listening.phase == .you {
+          listening.stop()
+        } else {
+          listening.playRecording(
+            url: session.store.audioURL(for: clip), segment: clip.practiceSegment)
+        }
+      } label: {
+        Label(
+          listening.phase == .you ? "Stop My Recording" : "Hear My Recording",
+          systemImage: listening.phase == .you ? "stop.fill" : "play"
         )
-        .fontWeight(listening.phase == .reference ? .semibold : .regular)
-        Image(systemName: "arrow.right").accessibilityHidden(true)
-        Label("You", systemImage: listening.phase == .you ? "speaker.wave.2.fill" : "speaker")
-          .fontWeight(listening.phase == .you ? .semibold : .regular)
-      }.font(.callout).accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-          listening.phase == .reference ? "Playing reference" : "Playing your recording")
+      }.buttonStyle(.bordered).disabled(editing || session.processing)
     }
-    Button {
-      if listening.isPlaying {
-        listening.stop()
-        return
-      }
-      session.confirmIntent()
-      listening.play(
-        text: clip.intendedText, url: session.store.audioURL(for: clip), variety: session.variety,
-        voiceID: session.variety == .american ? voiceUS : voiceUK, segment: clip.practiceSegment)
-    } label: {
-      Label(
-        listening.isPlaying
-          ? "Stop Listening" : listening.phase == .done ? "Listen Again" : "Listen",
-        systemImage: listening.isPlaying ? "stop.fill" : "play.fill"
-      ).frame(maxWidth: .infinity)
-    }.buttonStyle(.borderedProminent).controlSize(.large)
-      .disabled(
-        editing || session.processing
-          || clip.intendedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-    Text(
-      listening.phase == .done
-        ? "That’s it. Back to your day." : "Reference pronunciation, then your recording."
-    )
-    .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity)
     DisclosureGroup("Details") {
       VStack(alignment: .leading, spacing: 12) {
         if let caution = session.caution { Text(caution) }

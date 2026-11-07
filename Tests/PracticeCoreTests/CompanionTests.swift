@@ -245,27 +245,37 @@ private func directory() -> URL {
   }
 }
 
-@Test @MainActor func oneListeningActionPlaysReferenceThenYou() async throws {
+@Test @MainActor func referenceNeverAutomaticallyPlaysYourRecording() async throws {
   let audio = Audio()
   let listening = Listening(audio: audio)
-  listening.play(
-    text: "Test.", url: URL(fileURLWithPath: "/unused.wav"), variety: .american, voiceID: nil)
+  listening.playReference(text: "Test.", variety: .american, voiceID: nil)
   try await waitFor { audio.referenceCompletion != nil }
-  #expect(audio.calls == ["reference"])
   #expect(listening.phase == .reference)
   audio.finishReference()
+  try await waitFor { listening.phase == .done }
+  #expect(audio.calls == ["reference"])
+}
+
+@Test @MainActor func switchingToYourRecordingCancelsReferenceWithoutStaleState() async throws {
+  let audio = Audio()
+  let listening = Listening(audio: audio)
+  listening.playReference(text: "Test.", variety: .american, voiceID: nil)
+  try await waitFor { audio.referenceCompletion != nil }
+  listening.playRecording(url: URL(fileURLWithPath: "/unused.wav"))
   try await waitFor { audio.recordingCompletion != nil }
-  #expect(audio.calls == ["reference", "you"])
+  #expect(audio.referenceCompletion == nil)
   #expect(listening.phase == .you)
+  #expect(listening.error == nil)
   audio.finishRecording()
   try await waitFor { listening.phase == .done }
+  #expect(audio.calls == ["reference", "you"])
 }
 
 @Test @MainActor func cancellingReferenceNeverStartsYourAudio() async throws {
   let audio = Audio()
   let listening = Listening(audio: audio)
-  listening.play(
-    text: "Test.", url: URL(fileURLWithPath: "/unused.wav"), variety: .british, voiceID: nil)
+  listening.playReference(
+    text: "Test.", variety: .british, voiceID: nil)
   try await waitFor { audio.referenceCompletion != nil }
   listening.stop()
   try await Task.sleep(for: .milliseconds(20))
@@ -277,8 +287,8 @@ private func directory() -> URL {
 @Test @MainActor func cancellationBeforeListeningTaskStartsIsSilent() async throws {
   let audio = Audio()
   let listening = Listening(audio: audio)
-  listening.play(
-    text: "Test.", url: URL(fileURLWithPath: "/unused.wav"), variety: .american, voiceID: nil)
+  listening.playReference(
+    text: "Test.", variety: .american, voiceID: nil)
   listening.stop()
   try await Task.sleep(for: .milliseconds(20))
   #expect(audio.calls.isEmpty)
@@ -313,16 +323,13 @@ private func directory() -> URL {
   #expect(decoded.practiceSegment == nil)
 }
 
-@Test @MainActor func comparisonReplaysOnlyTheSelectedExcerpt() async throws {
+@Test @MainActor func ownRecordingPlaysOnlyTheSelectedExcerptWithoutReference() async throws {
   let audio = Audio()
   let listening = Listening(audio: audio)
   let segment = WordSegment(text: "Please open the browser.", start: 2, duration: 3)
-  listening.play(
-    text: segment.text, url: URL(fileURLWithPath: "/unused.wav"), variety: .american, voiceID: nil,
-    segment: segment)
-  try await waitFor { audio.referenceCompletion != nil }
-  audio.finishReference()
+  listening.playRecording(url: URL(fileURLWithPath: "/unused.wav"), segment: segment)
   try await waitFor { audio.recordingCompletion != nil }
+  #expect(audio.calls == ["you"])
   #expect(audio.lastSegment == segment)
   listening.stop()
 }
