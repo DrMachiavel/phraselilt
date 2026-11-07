@@ -1,0 +1,32 @@
+Sources/PhraseLilt/MenuBarSymbol.swift
+  s_5b7efbe2213200::t_d3fea80621427c 1-6
+Tests/AppTests/MenuBarSymbolTests.swift
+  s_5b7efbe2213200::t_d3fea80621427c 1-11
+  s_5b7efbe2213200::t_159ae3ac4b91ba 12
+App/Info.plist
+  s_5b7efbe2213200::t_151c53a9c31d07 9-10
+Package.swift
+  s_5b7efbe2213200::t_4f27cddf7c6b05 12-13
+README.md
+  s_5b7efbe2213200::t_1d9aa9d92eca49 9
+Sources/PhraseLilt/PhraseLiltApp.swift
+  s_5b7efbe2213200::t_a3d7cbfbea5674 251-252,291-297,299,301-306
+Sources/PhraseLilt/ReviewView.swift
+  s_5b7efbe2213200::t_78fb4d3a20edf3 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d583e4f975c100134fdd4e8de583f217b29dccaf",
+  "prompts": {},
+  "sessions": {
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    }
+  }
+}
