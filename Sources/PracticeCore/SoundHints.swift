@@ -69,7 +69,7 @@ public enum SoundHintRules {
       let expected = text.substring(with: match.range).lowercased()
       let (_, word, individuallyTimed) = locatedWord
       guard individuallyTimed else { continue }
-      if let tail = tails[expected], word.duration >= 0.15, word.duration <= 1.5,
+      if let tail = tails[expected], word.duration >= 0.08, word.duration <= 1.5,
         word.start >= 0.08, word.start + word.duration <= clip.duration - 0.08
       {
         result.append(

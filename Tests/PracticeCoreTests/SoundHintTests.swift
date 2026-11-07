@@ -239,3 +239,13 @@ private struct NoSoundFindings: SoundAssessing {
   hints.cancel()
   #expect(hints.summary == nil)
 }
+
+@Test func shortConversationalWordTimingsRemainEligibleWithoutGeneratingFindings() {
+  var clip = soundClip()
+  clip.words[0].duration = 0.12
+  let candidates = SoundHintRules.candidates(for: clip)
+  #expect(candidates.map(\.word).contains("think"))
+  #expect(candidates.first.flatMap { SoundHintRules.hint(for: $0, phones: []) } == nil)
+  clip.words[0].duration = 0.02
+  #expect(!SoundHintRules.candidates(for: clip).map(\.word).contains("think"))
+}
