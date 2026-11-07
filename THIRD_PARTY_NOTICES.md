@@ -1,9 +1,9 @@
-# Third-party notices and asset inventory
+# Third-party notices
 
-PhraseLilt source: Copyright © 2026 Elliot Boucher, PolyForm Noncommercial 1.0.0. See LICENSE for the unmodified license and NOTICE for the licensor notice.
+PhraseLilt original source is PolyForm Noncommercial 1.0.0. Dependencies and model weights keep their own terms; our license does not override them.
 
-This version has **no external Swift package dependencies, bundled model weights, datasets, third-party icons/fonts or redistributed voice files**. System typography, SF Symbols and SwiftUI/AppKit/AVFoundation/Speech/CoreAudio frameworks are used through Apple's SDK under the applicable Apple SDK/system terms. They are not relicensed by this project's LICENSE. The application does not grant independent redistribution rights to Apple speech assets or voices; macOS installs them directly.
+- **Microsoft ONNX Runtime / Swift bindings 1.24.2**, package commit `b7fb7f7dea8a2469e6335d95a61b8f36d0dc83b2`: MIT. The linked runtime includes additional components with their own notices. Full texts are preserved in [ThirdParty](ThirdParty) and copied into the app's Resources/ThirdParty. No runtime Extensions product is linked; SPM may cache its archive during package resolution.
+- **Optional Meta Wav2Vec2 phone model**, int8 conversion by Alimehdi973 at revision `6d4ca8853c7218ee12c0707b3ccde16310551bc3`: source model and export model cards declare Apache-2.0. Original authors Qiantong Xu, Alexei Baevski, Michael Auli / Meta; converter Alimehdi973. Weight bytes are unchanged except ONNX conversion/quantization. Downloaded separately from Hugging Face, never committed or bundled. Apache-2.0 text is preserved in ThirdParty. Training uses multilingual Common Voice, as documented by Meta; no dataset audio is downloaded or redistributed. This model is not the separate SpeechOcean-fine-tuned HuBERT model considered during research.
+- **Apple SDK/system assets**: SwiftUI/AppKit/AVFoundation/Speech/CoreAudio, system typography and SF Symbols are used under applicable Apple SDK/system terms. Speech assets/voices are installed directly by macOS; no redistribution rights are granted by this repository.
 
-WhisperKit (MIT source), GOPT (BSD-3-Clause source), Kaldi, PyTorch, SpeechOcean762 and Kokoro were considered or mentioned in documentation, not included or downloaded by the app. Their models, data, dependencies and assets require separate license/notice verification before integration. A source license is not clearance for weights or training data. No GOPT implementation is copied.
-
-Unit tests generate signal fixtures locally from equations. The development synthetic sentence is invented and no audio fixture is committed or redistributed. Screenshot/test evidence is kept outside the repository.
+WhisperKit, GOPT, OpenPronounce, Kaldi, PyTorch, SpeechOcean762 and Kokoro are research references, not app dependencies. No implementation from their repositories is copied. The optional experiment is custom code using the directly downloaded acoustic model and Microsoft's runtime. No evaluation dataset or personal audio is redistributed.

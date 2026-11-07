@@ -53,6 +53,9 @@ struct SettingsView: View {
           AssetSettings(assets: model.assets, variety: session.variety)
         }
       }
+      Section("Sound Hints · Experimental") {
+        SoundSetupView(setup: model.soundModel)
+      }
       Section("Local History") {
         Picker("Delete unsaved clips after", selection: $days) {
           Text("1 day").tag(1)
@@ -119,5 +122,29 @@ private struct AssetSettings: View {
     Text("Additional voices can be downloaded in System Settings → Accessibility → Read & Speak.")
       .font(.caption)
       .task(id: variety) { await assets.check(variety) }
+  }
+}
+
+private struct SoundSetupView: View {
+  @ObservedObject var setup: SoundModelSetup
+  var body: some View {
+    Text(
+      "Try a small acoustic experiment for “th” in think, thing, things, three, thank and thanks. American reference only. It can miss differences or suggest a valid accent variant."
+    )
+    .font(.caption).foregroundStyle(.secondary)
+    if setup.downloading {
+      ProgressView(value: setup.progress)
+      Button("Cancel Download") { setup.cancel() }
+    } else if setup.ready {
+      Label("Sound model ready · works offline", systemImage: "checkmark.circle")
+      Button("Verify or Repair Model") { setup.install() }
+    } else {
+      Button("Download Sound Model · 355 MB") { setup.install() }
+    }
+    Text(
+      "Optional. Downloads from Hugging Face; no audio is sent. Keep 1 GB free; analysis may use about 1 GB of memory. Then check your wording and choose Check Sounds on a clip. Download cancellation restarts the unfinished file."
+    )
+    .font(.caption).foregroundStyle(.secondary)
+    if let error = setup.error { Text(error).font(.caption) }
   }
 }

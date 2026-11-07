@@ -15,6 +15,8 @@ import SwiftUI
   private(set) var startupError: String?
   let playback: Playback
   let listening: Listening
+  let soundHints = SoundHints()
+  let soundModel = SoundModelSetup()
   let assets = ModelSetup(provider: SystemSpeechAssets())
   let input = InputDeviceObserver()
   private var observers: [NSObjectProtocol] = []
@@ -56,7 +58,10 @@ import SwiftUI
       self.session = session
       let companion = Companion(session: session)
       self.companion = companion
-      companion.willCapture = { [weak self] in self?.listening.stop() }
+      companion.willCapture = { [weak self] in
+        self?.listening.stop()
+        self?.soundHints.cancel()
+      }
       recorder.finished = { [weak session] in session?.finishRecording() }
       recorder.interrupted = { [weak session] in
         session?.cancelRecording()
@@ -67,6 +72,7 @@ import SwiftUI
         self.companion?.suspend()
         self.session?.cancelRecording()
         self.listening.stop()
+        self.soundHints.cancel()
         self.resumeCompanion()
       }
       for name in [
@@ -81,6 +87,7 @@ import SwiftUI
               self?.companion?.suspend()
               self?.session?.cancelRecording()
               self?.listening.stop()
+              self?.soundHints.cancel()
             }
           })
       }
@@ -104,6 +111,8 @@ import SwiftUI
             self?.session?.shutdown()
             self?.listening.stop()
             self?.assets.cancel()
+            self?.soundModel.cancel()
+            self?.soundHints.cancel()
             self?.input.stop()
           }
         })
@@ -212,6 +221,7 @@ import SwiftUI
     guard let button = statusItem?.button else { return }
     nudgeReady = false
     showsSettings = settings
+    if settings { soundHints.cancel() }
     popover.animates = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     if !popover.isShown {
       popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -221,11 +231,13 @@ import SwiftUI
   }
   func openSettings() {
     listening.stop()
+    soundHints.cancel()
     showsSettings = true
   }
   @objc func showSettingsFromMenu() { showPopover(settings: true) }
   func popoverDidClose(_ notification: Notification) {
     listening.stop()
+    soundHints.cancel()
     showsSettings = false
   }
   func importAudio() {
@@ -266,7 +278,9 @@ struct PopoverRoot: View {
           SettingsView(model: model, session: session, companion: companion)
         }
       } else if let session = model.session, let companion = model.companion {
-        ReviewView(model: model, session: session, companion: companion, listening: model.listening)
+        ReviewView(
+          model: model, session: session, companion: companion, listening: model.listening,
+          soundHints: model.soundHints, soundModel: model.soundModel)
       } else {
         Text(model.startupError ?? "Couldn’t open PhraseLilt").padding()
       }

@@ -6,6 +6,8 @@ struct ReviewView: View {
   @ObservedObject var session: PracticeSession
   @ObservedObject var companion: Companion
   @ObservedObject var listening: Listening
+  @ObservedObject var soundHints: SoundHints
+  @ObservedObject var soundModel: SoundModelSetup
   @AppStorage("voiceUS") private var voiceUS = ""
   @AppStorage("voiceUK") private var voiceUK = ""
   @AppStorage("retentionDays") private var days = 7
@@ -79,10 +81,20 @@ struct ReviewView: View {
     }.frame(minWidth: 360, minHeight: 380)
       .onChange(of: session.selectedID) {
         listening.stop()
+        soundHints.cancel()
         editing = false
       }
-      .onChange(of: session.variety) { listening.stop() }
-      .onChange(of: session.selected?.intendedText) { listening.stop() }
+      .onChange(of: session.variety) {
+        listening.stop()
+        soundHints.cancel()
+      }
+      .onChange(of: session.selected?.rawRecognition) { soundHints.cancel() }
+      .onChange(of: session.selected?.words) { soundHints.cancel() }
+      .onChange(of: session.recording) { soundHints.cancel() }
+      .onChange(of: session.selected?.intendedText) {
+        listening.stop()
+        soundHints.cancel()
+      }
       .confirmationDialog("Delete this clip and its local data?", isPresented: $deleting) {
         Button("Delete Clip", role: .destructive) {
           listening.stop()
@@ -137,12 +149,18 @@ struct ReviewView: View {
       }
       .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     } else {
-      Text(clip.intendedText.isEmpty ? "What did you say?" : clip.intendedText)
+      Text(highlighted(clip.intendedText.isEmpty ? "What did you say?" : clip.intendedText))
         .font(.system(.title, design: .default)).fixedSize(horizontal: false, vertical: true)
         .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityHint(
+          soundHints.hints.isEmpty
+            ? ""
+            : "Experimental practice target: th in "
+              + soundHints.hints.map(\.word).joined(separator: ", "))
       Button(clip.intendedText.isEmpty ? "Enter Wording" : "Edit Wording") {
         listening.stop()
         session.cancelAnalysis()
+        soundHints.cancel()
         draft = clip.intendedText
         editing = true
       }.font(.caption).disabled(session.processing)
@@ -180,6 +198,30 @@ struct ReviewView: View {
         )
       }.buttonStyle(.bordered).disabled(editing || session.processing)
     }
+    if soundModel.ready {
+      VStack(alignment: .leading, spacing: 8) {
+        if soundHints.running {
+          HStack {
+            ProgressView().controlSize(.small)
+            Text("Checking sounds locally…")
+            Button("Cancel") { soundHints.cancel() }
+          }
+        } else {
+          Button("Check Sounds · Experimental") {
+            listening.stop()
+            session.confirmIntent()
+            // Capture confirmed intent independently of the raw recognition result.
+            if var confirmed = session.selected {
+              confirmed.variety = session.variety
+              soundHints.check(clip: confirmed, url: session.store.audioURL(for: confirmed))
+            }
+          }.disabled(editing || session.processing)
+        }
+        if let status = soundHints.status {
+          Text(status).font(.caption).foregroundStyle(.secondary)
+        }
+      }
+    }
     DisclosureGroup("Details") {
       VStack(alignment: .leading, spacing: 12) {
         if let caution = session.caution { Text(caution) }
@@ -203,6 +245,16 @@ struct ReviewView: View {
         Button("Transcribe Again") { session.retryTranscription() }.disabled(session.processing)
       }.font(.callout).padding(.top, 10)
     }
+  }
+  private func highlighted(_ text: String) -> AttributedString {
+    var result = AttributedString(text)
+    for hint in soundHints.hints {
+      guard let range = Range(hint.range, in: text), let attributedRange = Range(range, in: result)
+      else { continue }
+      result[attributedRange].foregroundColor = .orange
+      result[attributedRange].underlineStyle = .single
+    }
+    return result
   }
   private func historyTitle(_ clip: Clip) -> String {
     "\(clip.saved ? "★ " : "")\(clip.intendedText.isEmpty ? "Untitled clip" : String(clip.intendedText.prefix(42))) · \(clip.createdAt.formatted(date: .omitted, time: .shortened))"
