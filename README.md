@@ -6,7 +6,7 @@ Speech recognition can understand you even when pronunciation differs from your 
 
 ## Current capabilities
 
-- One resizable native practice window. The menu-bar icon opens it; it no longer duplicates the review in a second popover.
+- One resizable native practice window. The menu-bar **PL** control opens it; it no longer duplicates the review in a second popover.
 - **Listen** plays the selected English reference, then your original audio, in one action. When existing timestamps precisely bound a complete sentence of at most 12 seconds, the companion offers that short excerpt; otherwise it keeps the full clip. The original recording stays available in Details. Edit wording only when recognition got it wrong.
 - **Opt-in companion capture:** follow Wispr Flow's microphone activity without registering, observing or changing Fn. Granola is an experimental selectable source. Other microphone apps are separately opt-in and may include calls.
 - Recording is a separate local microphone capture, not a recording imported from those apps. No private APIs, app databases, account connections, or transcript scraping are used.

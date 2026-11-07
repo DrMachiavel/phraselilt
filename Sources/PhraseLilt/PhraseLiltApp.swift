@@ -248,7 +248,8 @@ extension Int { func nonzeroOr(_ fallback: Int) -> Int { self == 0 ? fallback : 
       if let session = model.session {
         MenuStatus(model: model, session: session)
       } else {
-        Label("PhraseLilt", systemImage: "exclamationmark.bubble")
+        Label("PL", systemImage: MenuBarSymbol.unavailable.rawValue).labelStyle(.titleAndIcon).help(
+          "PhraseLilt needs attention")
       }
     }.menuBarExtraStyle(.menu)
     Settings {
@@ -287,12 +288,22 @@ struct MenuStatus: View {
   @ObservedObject var session: PracticeSession
   var body: some View {
     Label(
-      session.recording
-        ? "Recording · Stop in PhraseLilt"
-        : session.processing
-          ? "Processing locally" : model.nudgeReady ? "Practice ready" : "PhraseLilt",
+      "PL",
       systemImage: session.recording
-        ? "record.circle.fill" : model.nudgeReady ? "bubble.and.waveform.fill" : "waveform.bubble")
+        ? MenuBarSymbol.recording.rawValue
+        : model.nudgeReady ? MenuBarSymbol.ready.rawValue : MenuBarSymbol.idle.rawValue
+    )
+    .labelStyle(.titleAndIcon)
+    .help(
+      session.recording
+        ? "PhraseLilt · recording; open to stop"
+        : session.processing
+          ? "PhraseLilt · preparing a clip"
+          : model.nudgeReady ? "PhraseLilt · practice ready" : "PhraseLilt · open practice"
+    )
+    .accessibilityLabel(
+      session.recording
+        ? "PhraseLilt recording" : model.nudgeReady ? "PhraseLilt practice ready" : "PhraseLilt")
   }
 }
 @MainActor final class LaunchDelegate: NSObject, NSApplicationDelegate {

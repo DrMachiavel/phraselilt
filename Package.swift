@@ -9,5 +9,6 @@ let package = Package(
     targets: [.target(name: "PracticeCore"),
               .executableTarget(name: "PhraseLilt", dependencies: ["PracticeCore"]),
               .executableTarget(name: "SpeechProbe", dependencies: ["PracticeCore"]),
-              .testTarget(name: "PracticeCoreTests", dependencies: ["PracticeCore"])]
+              .testTarget(name: "PracticeCoreTests", dependencies: ["PracticeCore"]),
+              .testTarget(name: "AppTests", dependencies: ["PhraseLilt"])]
 )

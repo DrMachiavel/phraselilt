@@ -15,7 +15,7 @@ struct ReviewView: View {
   var body: some View {
     VStack(spacing: 0) {
       HStack {
-        Label("PhraseLilt", systemImage: "waveform.bubble").font(.headline)
+        Label("PhraseLilt", systemImage: MenuBarSymbol.idle.rawValue).font(.headline)
         Spacer()
         SettingsLink { Text("Settings") }
       }.padding(20)
