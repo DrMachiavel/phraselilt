@@ -1,0 +1,41 @@
+App/Info.plist
+  s_5b7efbe2213200::t_3e56e4d2569832 9-10
+README.md
+  s_5b7efbe2213200::t_4ba45194f65601 22,53
+Sources/PhraseLilt/PhraseLiltApp.swift
+  s_5b7efbe2213200::t_8c8adcbc881902 26-32,53-55,60,153-159,166-172,206-207,304
+Sources/PhraseLilt/ReviewView.swift
+  s_5b7efbe2213200::t_86850d2c4309e8 145-154,195-199,201-202,207-213,236,238
+Sources/PhraseLilt/SettingsView.swift
+  s_5b7efbe2213200::t_863cad390147e7 57,130,132,147
+Sources/PracticeCore/SoundHints.swift
+  s_5b7efbe2213200::t_84b16bc3203031 39,54-66,68,70-71,214-232,237,242-251,253-254,258,272-273,278,286
+Tests/PracticeCoreTests/SoundHintTests.swift
+  s_5b7efbe2213200::t_49b81a01f03b30 19,23-24,36-57,105-107,121-169
+docs/ARCHITECTURE.md
+  s_5b7efbe2213200::t_4551ba8673fff1 19-21
+docs/COMPANION.md
+  s_5b7efbe2213200::t_0ada7e6016e0dd 22
+docs/EVALUATION.md
+  s_5b7efbe2213200::t_87e8d22fb613fa 3,35-38
+docs/MODELS.md
+  s_5b7efbe2213200::t_5859f5a4ded110 39,45,48-49
+docs/PRIVACY.md
+  s_5b7efbe2213200::t_fe0403dd799922 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bbbd6f4caa7a5d8de3d54d93a84e12ca9fa6d29",
+  "prompts": {},
+  "sessions": {
+    "s_5b7efbe2213200": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b635-f436-7401-9244-ac3871361e09",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Elliot Boucher <36016658+DrMachiavel@users.noreply.github.com>"
+    }
+  }
+}
