@@ -4,9 +4,12 @@ import Combine
 import PracticeCore
 import SwiftUI
 
-@MainActor final class AppModel: NSObject, ObservableObject, NSWindowDelegate {
+@MainActor final class AppModel: NSObject, ObservableObject, NSPopoverDelegate {
   static let shared = AppModel()
-  private var practiceWindow: NSWindow?
+  private var statusItem: NSStatusItem?
+  private let popover = NSPopover()
+  private var statusSubscription: AnyCancellable?
+  @Published var showsSettings = false
   private(set) var session: PracticeSession?
   private(set) var companion: Companion?
   private(set) var startupError: String?
@@ -170,46 +173,65 @@ import SwiftUI
     guard companionEnabled else { return }
     updateConfiguration()
   }
-  func showPractice() {
-    nudgeReady = false
-    if let practiceWindow {
-      practiceWindow.makeKeyAndOrderFront(nil)
-      NSApp.activate()
-      return
-    }
-    let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 480, height: 550),
-      styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false
-    )
-    window.title = "PhraseLilt"
-    window.minSize = NSSize(width: 360, height: 400)
-    window.isReleasedWhenClosed = false
-    window.delegate = self
-    if let session, let companion {
-      window.contentView = NSHostingView(
-        rootView: ReviewView(
-          model: self, session: session, companion: companion, listening: listening))
-    } else {
-      window.contentView = NSHostingView(
-        rootView: Text(startupError ?? "Couldn’t open PhraseLilt").padding())
-    }
-    #if DEBUG
-      if CommandLine.arguments.contains("--ui-check-small") {
-        window.setContentSize(NSSize(width: 360, height: 420))
+  func installStatusItem() {
+    guard statusItem == nil else { return }
+    let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    statusItem = item
+    item.button?.title = "PL"
+    item.button?.imagePosition = .imageLeading
+    item.button?.target = self
+    item.button?.action = #selector(togglePopover)
+    popover.behavior = .transient
+    popover.delegate = self
+    popover.contentSize = NSSize(width: 390, height: 540)
+    popover.contentViewController = NSHostingController(rootView: PopoverRoot(model: self))
+    if let session {
+      statusSubscription = session.$recording.combineLatest($nudgeReady).sink {
+        [weak self] recording, ready in
+        let symbol = recording ? MenuBarSymbol.recording : ready ? .ready : .idle
+        self?.statusItem?.button?.image = NSImage(
+          systemSymbolName: symbol.rawValue, accessibilityDescription: "PhraseLilt")
+        self?.statusItem?.button?.toolTip =
+          recording
+          ? "PhraseLilt · recording; click to stop"
+          : ready ? "PhraseLilt · practice ready" : "PhraseLilt · click to practise"
+        self?.statusItem?.button?.setAccessibilityLabel(
+          recording ? "PhraseLilt recording" : "PhraseLilt")
       }
-    #endif
-    practiceWindow = window
-    window.center()
-    NSApp.setActivationPolicy(.regular)
-    window.makeKeyAndOrderFront(nil)
+    } else {
+      item.button?.image = NSImage(
+        systemSymbolName: MenuBarSymbol.unavailable.rawValue,
+        accessibilityDescription: "PhraseLilt needs attention")
+    }
+  }
+  @objc func togglePopover() {
+    if popover.isShown { popover.performClose(nil) } else { showPopover() }
+  }
+  func showPopover(settings: Bool = false) {
+    installStatusItem()
+    guard let button = statusItem?.button else { return }
+    nudgeReady = false
+    showsSettings = settings
+    popover.animates = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    if !popover.isShown {
+      popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    }
+    popover.contentViewController?.view.window?.makeKey()
     NSApp.activate()
   }
-  func windowWillClose(_ notification: Notification) {
+  func openSettings() {
     listening.stop()
-    practiceWindow = nil
-    NSApp.setActivationPolicy(.accessory)
+    showsSettings = true
+  }
+  @objc func showSettingsFromMenu() { showPopover(settings: true) }
+  func popoverDidClose(_ notification: Notification) {
+    listening.stop()
+    showsSettings = false
   }
   func importAudio() {
+    popover.performClose(nil)
+    NSApp.activate()
+    defer { showPopover() }
     let panel = NSOpenPanel()
     panel.allowedContentTypes = [.wav, .mpeg4Audio]
     panel.allowsMultipleSelection = false
@@ -228,102 +250,77 @@ import SwiftUI
 
 extension Int { func nonzeroOr(_ fallback: Int) -> Int { self == 0 ? fallback : self } }
 
-@main struct PhraseLiltApp: App {
-  @NSApplicationDelegateAdaptor(LaunchDelegate.self) private var delegate
-  @StateObject private var model = AppModel.shared
-  var body: some Scene {
-    MenuBarExtra {
-      Button("Open Practice") { model.showPractice() }
-      if let session = model.session, let companion = model.companion {
-        CompanionMenu(model: model, session: session, companion: companion)
-      }
-      SettingsLink { Text("Settings…") }
-      Divider()
-      Button("Quit PhraseLilt") {
-        model.companion?.stop()
-        model.session?.shutdown()
-        NSApp.terminate(nil)
-      }.keyboardShortcut("q")
-    } label: {
-      if let session = model.session {
-        MenuStatus(model: model, session: session)
-      } else {
-        Label("PL", systemImage: MenuBarSymbol.unavailable.rawValue).labelStyle(.titleAndIcon).help(
-          "PhraseLilt needs attention")
-      }
-    }.menuBarExtraStyle(.menu)
-    Settings {
-      if let session = model.session, let companion = model.companion {
-        SettingsView(model: model, session: session, companion: companion)
+struct PopoverRoot: View {
+  @ObservedObject var model: AppModel
+  var body: some View {
+    VStack(spacing: 0) {
+      if model.showsSettings {
+        HStack {
+          Button("Back", systemImage: "chevron.left") { model.showsSettings = false }
+          Spacer()
+          Text("Settings").font(.headline)
+          Spacer()
+        }.padding(16)
+        Divider()
+        if let session = model.session, let companion = model.companion {
+          SettingsView(model: model, session: session, companion: companion)
+        }
+      } else if let session = model.session, let companion = model.companion {
+        ReviewView(model: model, session: session, companion: companion, listening: model.listening)
       } else {
         Text(model.startupError ?? "Couldn’t open PhraseLilt").padding()
       }
-    }.commands {
-      CommandGroup(replacing: .appTermination) {
-        Button("Quit PhraseLilt") {
-          model.companion?.stop()
-          model.session?.shutdown()
-          NSApp.terminate(nil)
-        }.keyboardShortcut("q")
-      }
-    }
+    }.frame(width: 390, height: 540)
   }
 }
-struct CompanionMenu: View {
-  @ObservedObject var model: AppModel
-  @ObservedObject var session: PracticeSession
-  @ObservedObject var companion: Companion
-  var body: some View {
-    Text(companion.status)
-    if session.recording || session.requestingMicrophone {
-      Button("Stop Capture") { session.finishRecording() }
-    }
-    Button(model.companionEnabled ? "Pause Companion" : "Enable Companion…") {
-      model.setCompanionEnabled(!model.companionEnabled)
-    }
+
+@main @MainActor final class LaunchDelegate: NSObject, NSApplicationDelegate {
+  static func main() {
+    let application = NSApplication.shared
+    let delegate = LaunchDelegate()
+    application.delegate = delegate
+    application.setActivationPolicy(.accessory)
+    withExtendedLifetime(delegate) { application.run() }
   }
-}
-struct MenuStatus: View {
-  @ObservedObject var model: AppModel
-  @ObservedObject var session: PracticeSession
-  var body: some View {
-    Label(
-      "PL",
-      systemImage: session.recording
-        ? MenuBarSymbol.recording.rawValue
-        : model.nudgeReady ? MenuBarSymbol.ready.rawValue : MenuBarSymbol.idle.rawValue
-    )
-    .labelStyle(.titleAndIcon)
-    .help(
-      session.recording
-        ? "PhraseLilt · recording; open to stop"
-        : session.processing
-          ? "PhraseLilt · preparing a clip"
-          : model.nudgeReady ? "PhraseLilt · practice ready" : "PhraseLilt · open practice"
-    )
-    .accessibilityLabel(
-      session.recording
-        ? "PhraseLilt recording" : model.nudgeReady ? "PhraseLilt practice ready" : "PhraseLilt")
-  }
-}
-@MainActor final class LaunchDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     #if DEBUG
       if CommandLine.arguments.contains("--ui-check-light") {
         NSApp.appearance = NSAppearance(named: .aqua)
       }
     #endif
-    let defaults = UserDefaults.standard
-    if !defaults.bool(forKey: "companionDesignSeen")
-      || CommandLine.arguments.contains("--show-practice")
-    {
-      defaults.set(true, forKey: "companionDesignSeen")
-      AppModel.shared.showPractice()
-    }
+    installAppMenu()
+    AppModel.shared.installStatusItem()
+    if CommandLine.arguments.contains("--show-practice") { AppModel.shared.showPopover() }
   }
   func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool
   {
-    AppModel.shared.showPractice()
+    AppModel.shared.showPopover()
     return true
+  }
+  private func installAppMenu() {
+    let menu = NSMenu()
+    let appItem = NSMenuItem()
+    let appMenu = NSMenu()
+    let settings = NSMenuItem(
+      title: "Settings…", action: #selector(AppModel.showSettingsFromMenu), keyEquivalent: ",")
+    settings.target = AppModel.shared
+    appMenu.addItem(settings)
+    appMenu.addItem(.separator())
+    appMenu.addItem(
+      withTitle: "Quit PhraseLilt", action: #selector(NSApplication.terminate(_:)),
+      keyEquivalent: "q")
+    appItem.submenu = appMenu
+    menu.addItem(appItem)
+    let edit = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
+    let editMenu = NSMenu(title: "Edit")
+    for (title, action, key) in [
+      ("Undo", "undo:", "z"), ("Cut", "cut:", "x"), ("Copy", "copy:", "c"),
+      ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a"),
+    ] {
+      editMenu.addItem(withTitle: title, action: NSSelectorFromString(action), keyEquivalent: key)
+    }
+    edit.submenu = editMenu
+    menu.addItem(edit)
+    NSApp.mainMenu = menu
   }
 }

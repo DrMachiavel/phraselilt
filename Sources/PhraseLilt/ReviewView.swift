@@ -17,7 +17,7 @@ struct ReviewView: View {
       HStack {
         Label("PhraseLilt", systemImage: MenuBarSymbol.idle.rawValue).font(.headline)
         Spacer()
-        SettingsLink { Text("Settings") }
+        Button("Settings") { model.openSettings() }
       }.padding(20)
       Divider()
       ScrollView {
@@ -33,7 +33,7 @@ struct ReviewView: View {
                 "Keep using dictation as you always do. Enable the companion in Settings, then short practice clips will wait here quietly."
               )
               .foregroundStyle(.secondary)
-              SettingsLink { Text("Set Up Companion") }.buttonStyle(.borderedProminent)
+              Button("Set Up Companion") { model.openSettings() }.buttonStyle(.borderedProminent)
             }.padding(.vertical, 20)
           }
           if let message = session.message {

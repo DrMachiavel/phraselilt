@@ -78,7 +78,7 @@ struct SettingsView: View {
           "An ongoing recording is skipped when you enable or resume the companion. No keyboard monitoring, private app APIs, or system audio capture is used."
         ).font(.caption)
       }
-    }.formStyle(.grouped).frame(width: 510, height: 650)
+    }.formStyle(.grouped).frame(maxWidth: .infinity, maxHeight: .infinity)
       .onChange(of: variety) {
         model.listening.stop()
         session.setVariety(ReferenceVariety(rawValue: variety) ?? .american)
