@@ -4,324 +4,235 @@ import SwiftUI
 struct ReviewView: View {
   @ObservedObject var model: AppModel
   @ObservedObject var session: PracticeSession
-  let compact: Bool
-  @State private var selectedWord: WordSegment?
-  @State private var deleteConfirmation = false
+  @ObservedObject var companion: Companion
+  @ObservedObject var listening: Listening
   @AppStorage("voiceUS") private var voiceUS = ""
   @AppStorage("voiceUK") private var voiceUK = ""
+  @AppStorage("retentionDays") private var days = 7
+  @State private var editing = false
+  @State private var draft = ""
+  @State private var deleting = false
   var body: some View {
     VStack(spacing: 0) {
       HStack {
         Label("PhraseLilt", systemImage: "waveform.bubble").font(.headline)
         Spacer()
-        if compact {
-          Button("Practice") {
-            model.showPractice()
-            NSApp.activate()
-          }
-        }
-        SettingsLink { Label("Settings", systemImage: "gearshape") }.labelStyle(.iconOnly).help(
-          "Settings")
-      }.padding()
+        SettingsLink { Text("Settings") }
+      }.padding(20)
       Divider()
       ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 24) {
           if session.recording || session.requestingMicrophone {
-            recordingView
+            recording
           } else if let clip = session.selected {
             review(clip)
           } else {
-            ContentUnavailableView {
-              Label("A little clearer, each time", systemImage: "waveform")
-            } description: {
+            VStack(alignment: .leading, spacing: 18) {
+              Text("Your words. Your usual routine.").font(.title2)
               Text(
-                "Record a sentence you actually use. Listen, compare, and practise at your own pace."
+                "Keep using dictation as you always do. Enable the companion in Settings, then short practice clips will wait here quietly."
               )
-            } actions: {
-              Button("Record", systemImage: "mic") { record() }.buttonStyle(.borderedProminent)
-              Button("Import Audio…") { model.importAudio() }
-            }
-            Text(
-              "Hold Control–Option–your chosen key to record from another app. Release to stop. You can also click Record."
-            )
-            .font(.callout).foregroundStyle(.secondary)
-            Text("American or British reference? Choose in Settings. Your accent is not a defect.")
-              .font(.callout)
-            modelSetup
+              .foregroundStyle(.secondary)
+              SettingsLink { Text("Set Up Companion") }.buttonStyle(.borderedProminent)
+            }.padding(.vertical, 20)
           }
           if let message = session.message {
-            Label(message, systemImage: "info.circle").font(.callout).textSelection(.enabled)
+            Text(message).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
           }
-          if let error = model.shortcutError { Text(error).font(.callout) }
-        }.padding(24)
+          if let error = listening.error { Text(error).font(.callout) }
+          if let error = companion.error { Text(error).font(.callout) }
+        }.padding(28)
       }
       Divider()
       HStack {
-        if !session.clips.isEmpty {
-          Menu("History (\(session.clips.count))") {
-            ForEach(session.clips) { clip in
-              Button(historyTitle(clip)) {
-                model.playback.stop()
-                selectedWord = nil
-                session.select(clip.id)
+        Text("On this Mac · unsaved clips expire in \(days) \(days == 1 ? "day" : "days")")
+          .font(.caption).foregroundStyle(.secondary)
+        Spacer(minLength: 6)
+        Menu("More") {
+          if !session.clips.isEmpty {
+            Menu("History") {
+              ForEach(session.clips) { clip in
+                Button(historyTitle(clip)) {
+                  listening.stop()
+                  session.select(clip.id)
+                }
               }
             }
           }
-        }
-        Spacer()
-        Button("Import…") { model.importAudio() }.disabled(
-          session.recording || session.requestingMicrophone)
-        if session.recording || session.requestingMicrophone {
-          Button("Stop", systemImage: "stop.fill") { session.finishRecording() }.keyboardShortcut(
-            ".", modifiers: .command)
-        } else {
-          Button("Record", systemImage: "mic") { record() }
-        }
-        Menu("More") {
+          Button("Import Audio…") { model.importAudio() }.disabled(session.recording)
+          Button("Record Practice Clip") { model.recordPractice() }.disabled(
+            session.recording || session.processing)
+          if session.selected != nil {
+            Button("Delete Clip…", role: .destructive) { deleting = true }
+          }
+          Divider()
+          Button(model.companionEnabled ? "Pause Companion" : "Enable Companion…") {
+            model.setCompanionEnabled(!model.companionEnabled)
+          }
           Button("Quit PhraseLilt") {
+            model.companion?.stop()
             session.shutdown()
             NSApp.terminate(nil)
           }.keyboardShortcut("q")
-        }.menuStyle(.borderlessButton).fixedSize()
-      }.padding()
-    }
-    .frame(
-      minWidth: compact ? 420 : 380, idealWidth: compact ? 450 : 560,
-      maxWidth: compact ? 450 : .infinity,
-      minHeight: 400, idealHeight: 580, maxHeight: compact ? 650 : .infinity
-    )
-    .onChange(of: session.selectedID) {
-      model.playback.stop()
-      selectedWord = nil
-    }
-    .onChange(of: session.variety) {
-      model.playback.stop()
-      selectedWord = nil
-    }
-    .onChange(of: session.selected?.intendedText) {
-      model.playback.stop()
-      selectedWord = nil
-    }
-    .confirmationDialog("Delete this clip and its local data?", isPresented: $deleteConfirmation) {
-      Button("Delete Clip", role: .destructive) {
-        model.playback.stop()
-        session.deleteSelected()
+        }.fixedSize()
+      }.padding(16)
+    }.frame(minWidth: 360, minHeight: 380)
+      .onChange(of: session.selectedID) {
+        listening.stop()
+        editing = false
       }
-    }
+      .onChange(of: session.variety) { listening.stop() }
+      .onChange(of: session.selected?.intendedText) { listening.stop() }
+      .confirmationDialog("Delete this clip and its local data?", isPresented: $deleting) {
+        Button("Delete Clip", role: .destructive) {
+          listening.stop()
+          session.deleteSelected()
+        }
+      }
   }
-  private var recordingView: some View {
-    VStack(spacing: 20) {
+  private var recording: some View {
+    VStack(alignment: .leading, spacing: 20) {
       Label(
-        session.recording ? "Recording" : "Waiting for microphone permission…",
+        session.requestingMicrophone ? "Waiting for microphone permission…" : "Recording",
         systemImage: "record.circle"
       )
-      .font(.title2).accessibilityAddTraits(.updatesFrequently)
-      Text(session.retryContext?.intendedText ?? "Say one sentence, in your own words.")
-        .font(.title3).multilineTextAlignment(.center)
-      Text("Stops automatically before 60 seconds.").font(.callout).foregroundStyle(.secondary)
-      HStack {
-        Button("Cancel", role: .cancel) { session.cancelRecording() }.keyboardShortcut(
-          .escape, modifiers: [])
-        Button("Stop", systemImage: "stop.fill") { session.finishRecording() }.buttonStyle(
-          .borderedProminent)
-      }
-    }.frame(maxWidth: .infinity).padding(.vertical, 24)
+      .font(.headline).accessibilityAddTraits(.updatesFrequently)
+      Text("Keep speaking your way.").font(.title2)
+      Text(
+        companion.sourceName.map {
+          "Capturing a short local clip alongside \($0). Stops with that app, or after 30 seconds."
+        }
+          ?? "Recording a practice clip. Stops automatically before 60 seconds."
+      ).foregroundStyle(.secondary)
+      Button("Stop Capture", systemImage: "stop.fill") { session.finishRecording() }
+        .buttonStyle(.borderedProminent).controlSize(.large)
+      Button("Cancel", role: .cancel) { session.cancelRecording() }.keyboardShortcut(
+        .escape, modifiers: [])
+    }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 16)
   }
   @ViewBuilder private func review(_ clip: Clip) -> some View {
     HStack {
-      Text(clip.createdAt, format: .dateTime.month(.abbreviated).day().hour().minute()).font(
-        .caption
-      ).foregroundStyle(.secondary)
+      Text(clip.captureSource == nil ? "A phrase to practise" : "A phrase from your day")
       Spacer()
-      Text(session.variety.rawValue).font(.caption)
-    }
+      Text(session.variety.rawValue)
+    }.font(.caption).foregroundStyle(.secondary)
     if session.processing {
       HStack {
         ProgressView().controlSize(.small)
-        Text("Transcribing on this Mac…")
+        Text("Preparing your clip on this Mac…").font(.callout)
         Spacer()
         Button("Cancel") { session.cancelAnalysis() }
       }
     }
-    if clip.intentConfirmed {
-      Text(clip.intendedText).font(.title2).fixedSize(horizontal: false, vertical: true)
-        .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+    if editing {
+      TextEditor(text: $draft).font(.title2).scrollContentBackground(.hidden).frame(height: 120)
+        .accessibilityLabel("Intended sentence").onChange(of: draft) {
+          if draft.count > 2000 { draft = String(draft.prefix(2000)) }
+        }
+      Button("Save Wording") {
+        listening.stop()
+        session.editIntent(draft)
+        session.confirmIntent()
+        editing = false
+      }
+      .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     } else {
-      TextEditor(
-        text: Binding(
-          get: { session.selected?.intendedText ?? "" }, set: { session.editIntent($0) })
-      )
-      .font(.title2).scrollContentBackground(.hidden).frame(height: 100)
-      .accessibilityLabel("Intended sentence").disabled(session.processing)
-      .overlay(alignment: .topLeading) {
-        if clip.intendedText.isEmpty {
-          Text("What did you mean to say?").font(.title3).foregroundStyle(.secondary)
-            .padding(.top, 5).allowsHitTesting(false).accessibilityHidden(true)
-        }
+      Text(clip.intendedText.isEmpty ? "What did you say?" : clip.intendedText)
+        .font(.system(.title, design: .default)).fixedSize(horizontal: false, vertical: true)
+        .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+      Button(clip.intendedText.isEmpty ? "Enter Wording" : "Edit Wording") {
+        listening.stop()
+        session.cancelAnalysis()
+        draft = clip.intendedText
+        editing = true
+      }.font(.caption).disabled(session.processing)
+    }
+    if listening.isPlaying {
+      HStack(spacing: 12) {
+        Label(
+          "Reference",
+          systemImage: listening.phase == .reference ? "speaker.wave.2.fill" : "speaker"
+        )
+        .fontWeight(listening.phase == .reference ? .semibold : .regular)
+        Image(systemName: "arrow.right").accessibilityHidden(true)
+        Label("You", systemImage: listening.phase == .you ? "speaker.wave.2.fill" : "speaker")
+          .fontWeight(listening.phase == .you ? .semibold : .regular)
+      }.font(.callout).accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+          listening.phase == .reference ? "Playing reference" : "Playing your recording")
+    }
+    Button {
+      if listening.isPlaying {
+        listening.stop()
+        return
       }
-    }
-    HStack {
-      if clip.intentConfirmed {
-        Label("Wording confirmed", systemImage: "checkmark.circle").font(.callout)
-        Button("Edit Wording") { session.editIntent(clip.intendedText) }
-      } else {
-        Button("Confirm Wording") { session.confirmIntent() }.disabled(
-          clip.intendedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || session.processing)
-      }
-      Spacer()
-      Button(clip.saved ? "Saved" : "Save", systemImage: clip.saved ? "bookmark.fill" : "bookmark")
-      { session.toggleSaved() }
-    }
-    if clip.canUseWordTiming {
-      Text("Select a timed word or phrase to replay it.").font(.caption).foregroundStyle(.secondary)
-      // A wrapping adaptive grid keeps every segment reachable in small windows.
-      LazyVGrid(
-        columns: [GridItem(.adaptive(minimum: 84), alignment: .leading)], alignment: .leading,
-        spacing: 6
-      ) {
-        ForEach(clip.words) { word in
-          TimedWordButton(
-            playback: model.playback, word: word, selected: selectedWord?.id == word.id
-          ) {
-            selectedWord = selectedWord?.id == word.id ? nil : word
-          }
-        }
-      }
-    } else if clip.intentConfirmed {
-      Text("Word timing isn’t available for this wording. Replay the whole sentence.").font(
-        .caption
-      )
-      .foregroundStyle(.secondary)
-    }
-    playbackControls(clip)
-    if selectedWord != nil {
-      Button("Whole Sentence") {
-        selectedWord = nil
-        model.playback.stop()
-      }.font(.callout)
-    }
-    if let caution = session.caution { Label(caution, systemImage: "mic.slash").font(.callout) }
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Listen & practise").font(.headline)
-      Text(PracticeGuidance.tip)
-      Text(PracticeGuidance.disclaimer).font(.caption).foregroundStyle(.secondary)
-    }
-    Text("Experimental assessment · no pronunciation diagnosis is available.").font(.caption)
-      .foregroundStyle(.secondary)
-    Button("Try Again", systemImage: "arrow.clockwise") {
-      model.playback.stop()
-      Task { await session.startRecording(retry: true) }
-    }
-    .buttonStyle(.borderedProminent).controlSize(.large).disabled(
-      !clip.intentConfirmed || session.processing)
-    let attempts = session.clips.filter { $0.groupID == clip.groupID && $0.id != clip.id }
-    if !attempts.isEmpty {
-      Menu("Compare Attempts (\(attempts.count + 1))") {
-        ForEach(attempts) { attempt in
-          Button(historyTitle(attempt)) {
-            model.playback.stop()
-            session.select(attempt.id)
-          }
-        }
-      }
-    }
+      session.confirmIntent()
+      listening.play(
+        text: clip.intendedText, url: session.store.audioURL(for: clip), variety: session.variety,
+        voiceID: session.variety == .american ? voiceUS : voiceUK, segment: clip.practiceSegment)
+    } label: {
+      Label(
+        listening.isPlaying
+          ? "Stop Listening" : listening.phase == .done ? "Listen Again" : "Listen",
+        systemImage: listening.isPlaying ? "stop.fill" : "play.fill"
+      ).frame(maxWidth: .infinity)
+    }.buttonStyle(.borderedProminent).controlSize(.large)
+      .disabled(
+        editing || session.processing
+          || clip.intendedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    Text(
+      listening.phase == .done
+        ? "That’s it. Back to your day." : "Reference pronunciation, then your recording."
+    )
+    .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity)
     DisclosureGroup("Details") {
-      VStack(alignment: .leading, spacing: 10) {
+      VStack(alignment: .leading, spacing: 12) {
+        if let caution = session.caution { Text(caution) }
         Text(
           "Raw recognition: \(clip.rawRecognition.isEmpty ? "Unavailable" : clip.rawRecognition)"
         ).textSelection(.enabled)
-        Text("Timing locates replay segments. It does not assess pronunciation.")
-        Text(clip.assessmentNote)
+        if clip.practiceSegment != nil {
+          Text(
+            "Practising a short excerpt. The full recording and raw transcript are retained. Timing locates replay; it does not assess pronunciation."
+          )
+        }
+        if let source = clip.captureSource {
+          Text(
+            "Captured alongside \(source). This is a separate recording, not imported app audio. The first sounds may be missed while capture starts."
+          )
+        }
+        Text("Guided listening is available. Automatic pronunciation diagnosis is not.")
+        FullRecordingButton(
+          playback: model.playback, listening: listening, url: session.store.audioURL(for: clip))
+        Button(clip.saved ? "Unsave Clip" : "Save Clip") { session.toggleSaved() }
         Button("Transcribe Again") { session.retryTranscription() }.disabled(session.processing)
-        Button("Delete Clip…", role: .destructive) { deleteConfirmation = true }
-      }.font(.callout).padding(.top, 8)
+      }.font(.callout).padding(.top, 10)
     }
-  }
-  private func playbackControls(_ clip: Clip) -> some View {
-    PlaybackControls(
-      playback: model.playback,
-      you: {
-        do {
-          try model.playback.play(url: session.store.audioURL(for: clip), segment: selectedWord)
-        } catch { session.message = "Couldn’t play this clip. Try importing the original again." }
-      },
-      reference: {
-        do {
-          try model.playback.speak(
-            selectedWord?.text ?? clip.intendedText, variety: session.variety,
-            voiceID: session.variety == .american ? voiceUS : voiceUK)
-        } catch { session.message = error.localizedDescription }
-      }, enabled: clip.intentConfirmed)
-  }
-  private var modelSetup: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Setup").font(.headline)
-      Text(
-        "Local speech models and reference voices may need a first download. Open Settings to prepare offline practice."
-      )
-      SettingsLink { Text("Open Settings") }
-    }.font(.callout)
-  }
-  private func record() {
-    model.playback.stop()
-    Task { await session.startRecording() }
   }
   private func historyTitle(_ clip: Clip) -> String {
-    let sentence =
-      clip.intendedText.isEmpty ? "Untitled clip" : String(clip.intendedText.prefix(48))
-    return
-      "\(clip.saved ? "★ " : "")\(sentence) · \(clip.createdAt.formatted(date: .omitted, time: .shortened))"
+    "\(clip.saved ? "★ " : "")\(clip.intendedText.isEmpty ? "Untitled clip" : String(clip.intendedText.prefix(42))) · \(clip.createdAt.formatted(date: .omitted, time: .shortened))"
   }
 }
 
-private struct PlaybackControls: View {
+private struct FullRecordingButton: View {
   @ObservedObject var playback: Playback
-  var you: () -> Void
-  var reference: () -> Void
-  var enabled: Bool
+  var listening: Listening
+  var url: URL
+  @State private var failed = false
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: 12) {
-        Button("You", systemImage: "play.fill", action: you).controlSize(.large)
-        Button("Reference", systemImage: "speaker.wave.2", action: reference).controlSize(.large)
-          .disabled(!enabled)
-        Spacer()
-        Button("Stop", systemImage: "stop", action: playback.stop).disabled(!playback.playing)
-      }
-      if playback.playing {
-        Text(
-          playback.spokenWord.map { "Reference · \($0)" }
-            ?? "Playing · listen to the selected segment or sentence"
-        ).font(.caption)
-          .accessibilityAddTraits(.updatesFrequently)
-      }
-    }
-  }
-}
-
-private struct TimedWordButton: View {
-  @ObservedObject var playback: Playback
-  var word: WordSegment
-  var selected: Bool
-  var action: () -> Void
-  private var active: Bool {
-    guard let position = playback.position else { return false }
-    return position >= word.start && position < word.start + word.duration
-  }
-  var body: some View {
-    Button(action: action) {
-      HStack(spacing: 3) {
-        Text(word.text)
-        if active {
-          Image(systemName: "speaker.wave.2")
-        } else if selected {
-          Image(systemName: "checkmark")
+    VStack(alignment: .leading) {
+      Button(playback.playing ? "Stop Playback" : "Play Full Recording") {
+        if playback.playing {
+          listening.stop()
+          return
         }
-      }.frame(maxWidth: .infinity)
-    }.buttonStyle(.bordered).tint(selected || active ? .accentColor : nil)
-      .accessibilityLabel(word.text)
-      .accessibilityValue(active ? "Playing" : selected ? "Selected" : "Select segment")
-      .accessibilityAddTraits(selected ? [.isSelected] : [])
+        listening.stop()
+        do {
+          try playback.play(url: url)
+          failed = false
+        } catch { failed = true }
+      }
+      if failed { Text("Couldn’t play this recording. Try importing the original again.") }
+    }
   }
 }

@@ -43,6 +43,8 @@ public struct Clip: Codable, Identifiable, Equatable, Sendable {
   public var intentConfirmed = false
   public var words: [WordSegment] = []
   public var saved = false
+  public var captureSource: String?
+  public var practiceSegment: WordSegment?
   public var variety: ReferenceVariety
   public var duration: Double
   // Assessment is separate from recognition and intent. No diagnostic findings are emitted in v1.

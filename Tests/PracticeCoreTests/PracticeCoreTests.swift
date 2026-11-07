@@ -29,7 +29,7 @@ private func temporary() -> URL {
   var cancelled = false
   var permission: CheckedContinuation<Void, Never>?
   var waitForPermission = false
-  func start(to url: URL) async throws {
+  func start(to url: URL, maximumDuration: TimeInterval) async throws {
     starts += 1
     if waitForPermission { await withCheckedContinuation { permission = $0 } }
     if cancelled { throw CancellationError() }

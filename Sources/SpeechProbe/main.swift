@@ -5,6 +5,44 @@ import Speech
 
 @main struct Probe {
   static func main() async {
+    if CommandLine.arguments.contains("--observe-wispr") {
+      let reader = CoreAudioInputActivity()
+      let start = Date()
+      var previous: Bool?
+      var samples = 0
+      var peakRead = 0.0
+      while Date().timeIntervalSince(start) < 120 {
+        do {
+          let began = Date()
+          let snapshot = try reader.snapshot()
+          peakRead = max(peakRead, Date().timeIntervalSince(began))
+          samples += 1
+          let active = snapshot.processes.contains {
+            $0.bundleID.lowercased().hasPrefix("com.electron.wispr-flow")
+          }
+          if active != previous {
+            let matching = snapshot.processes.filter {
+              $0.bundleID.lowercased().hasPrefix("com.electron.wispr-flow")
+                && $0.devices.contains(snapshot.defaultDevice)
+            }.count
+            print("Active Wispr streams on default input: \(matching)")
+            print(
+              "Wispr microphone activity: \(active ? "active" : "idle") at \(String(format: "%.3f", Date().timeIntervalSince(start))) s"
+            )
+            fflush(stdout)
+            previous = active
+          }
+          try await Task.sleep(for: .milliseconds(100))
+        } catch {
+          print("Activity read failed: \(error.localizedDescription)")
+          exit(1)
+        }
+      }
+      print(
+        "Read-only samples: \(samples); longest metadata read: \(peakRead) s. No microphone was opened."
+      )
+      return
+    }
     let module = LocalTranscriber.module(.american)
     print("Local engine available: \(SpeechTranscriber.isAvailable)")
     print("US asset status: \(await AssetInventory.status(forModules: [module]))")

@@ -17,6 +17,6 @@ codesign --verify --strict --verbose=2 dist/PhraseLilt.app
 spctl --assess --type execute --verbose=2 dist/PhraseLilt.app
 ```
 
-Never commit signing credentials, keychain profiles or archives. Verify microphone, imported-file sandbox access, Carbon shortcut registration, Settings and offline readiness with the final signature; changing signatures may change permission identity. Apple assets/voices remain system managed and separately licensed. No App Store readiness or notarization is implied by a passing ad hoc build.
+Never commit signing credentials, keychain profiles or archives. Verify microphone, imported-file sandbox access, source/device-scoped companion capture, Settings and offline readiness with the final signature; changing signatures may change permission identity. Apple assets/voices remain system managed and separately licensed. No App Store readiness or notarization is implied by a passing ad hoc build.
 
-For a local rendered-interface check only, build with `PHRASELILT_BUILD_CONFIGURATION=debug ./scripts/build-app.sh` and launch with `open dist/PhraseLilt.app --args --ui-check-light --ui-check-small`. Debug-only flags select Aqua and a 380 × 420 pt content size within this process; they do not change system appearance. Rebuild normally afterwards.
+For a local rendered-interface check only, build with `PHRASELILT_BUILD_CONFIGURATION=debug ./scripts/build-app.sh` and launch with `open dist/PhraseLilt.app --args --show-practice --ui-check-light --ui-check-small`. Debug-only flags select Aqua and a 380 × 420 pt content size within this process; they do not change system appearance. Rebuild normally afterwards.

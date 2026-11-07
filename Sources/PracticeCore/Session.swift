@@ -2,7 +2,7 @@ import Combine
 import Foundation
 
 @MainActor public protocol Recording: AnyObject {
-  func start(to url: URL) async throws
+  func start(to url: URL, maximumDuration: TimeInterval) async throws
   func stop()
   func cancel()
 }
@@ -17,6 +17,7 @@ import Foundation
   @Published public private(set) var caution: String?
   @Published public private(set) var retryContext: Clip?
   @Published public private(set) var variety: ReferenceVariety
+  public var recordingDidEnd: ((Bool) -> Void)?
   public let store: ClipStore
   private let recorder: any Recording
   private let transcriber: any Transcribing
@@ -26,6 +27,7 @@ import Foundation
   private var token: WorkToken?
   private var recordRequest: UUID?
   private var recordingURL: URL?
+  private var recordingOrigin: String?
   public var selected: Clip? { clips.first { $0.id == selectedID } }
   public init(
     store: ClipStore, recorder: any Recording, transcriber: any Transcribing,
@@ -58,7 +60,9 @@ import Foundation
       save(clip)
     }
   }
-  public func startRecording(retry: Bool = false) async {
+  public func startRecording(
+    retry: Bool = false, origin: String? = nil, maximumDuration: TimeInterval = 59
+  ) async {
     guard !recording, !requestingMicrophone else { return }
     guard clips.count < 100 else {
       message = PracticeError.historyFull.localizedDescription
@@ -73,17 +77,18 @@ import Foundation
     requestingMicrophone = true
     let url = store.temporaryRecordingURL()
     recordingURL = url
+    recordingOrigin = origin
     do {
-      try await recorder.start(to: url)
+      try await recorder.start(to: url, maximumDuration: min(59, max(1, maximumDuration)))
       guard recordRequest == request else {
-        recorder.cancel()
         try? FileManager.default.removeItem(at: url)
         return
       }
       requestingMicrophone = false
       recording = true
       deadline = Task { [weak self] in
-        try? await Task.sleep(for: self?.recordingLimit ?? .seconds(59))
+        try? await Task.sleep(
+          for: min(self?.recordingLimit ?? .seconds(59), .seconds(maximumDuration)))
         guard !Task.isCancelled else { return }
         self?.finishRecording()
       }
@@ -108,10 +113,13 @@ import Foundation
     requestingMicrophone = false
     recordingURL = nil
     defer { try? FileManager.default.removeItem(at: url) }
-    add(url, retry: retryContext)
+    let completed = add(url, retry: retryContext, origin: recordingOrigin)
     retryContext = nil
+    recordingOrigin = nil
+    recordingDidEnd?(completed)
   }
   public func cancelRecording() {
+    let wasActive = recording || requestingMicrophone
     recordRequest = nil
     deadline?.cancel()
     deadline = nil
@@ -121,22 +129,30 @@ import Foundation
     retryContext = nil
     if let url = recordingURL { try? FileManager.default.removeItem(at: url) }
     recordingURL = nil
+    recordingOrigin = nil
+    if wasActive { recordingDidEnd?(false) }
   }
   public func importAudio(_ url: URL) {
     guard !recording, !requestingMicrophone else { return }
     add(url, retry: nil)
   }
-  private func add(_ url: URL, retry: Clip?) {
+  @discardableResult private func add(_ url: URL, retry: Clip?, origin: String? = nil) -> Bool {
     invalidate()
     message = nil
     do {
       let info = try AudioValidator.inspect(url)
-      let clip = try store.add(from: url, variety: variety, retry: retry)
+      var clip = try store.add(from: url, variety: variety, retry: retry)
+      clip.captureSource = origin
+      try store.update(clip)
       clips = store.clips
       selectedID = clip.id
       caution = info.caution
       if info.caution == nil { analyze(clip) }
-    } catch { message = error.localizedDescription }
+      return true
+    } catch {
+      message = error.localizedDescription
+      return false
+    }
   }
   public func retryTranscription() { if let clip = selected { analyze(clip) } }
   private func analyze(_ clip: Clip) {
@@ -163,11 +179,20 @@ import Foundation
       var clip = store.clips.first(where: { $0.id == current.clipID })
     else { return }
     processing = false
+    let mayChooseExcerpt =
+      clip.intendedText.isEmpty
+      || (!clip.intentConfirmed && clip.intendedText == clip.rawRecognition
+        && clip.practiceSegment == nil)
     clip.rawRecognition = result.text
     clip.words = result.words.filter {
       $0.start >= 0 && $0.start + $0.duration <= clip.duration + 0.1
     }
-    if clip.intendedText.isEmpty { clip.intendedText = result.text }
+    if mayChooseExcerpt {
+      let eligible = Recognition(text: result.text, words: clip.words)
+      clip.practiceSegment =
+        clip.captureSource == nil ? nil : PracticeExcerpt.select(from: eligible)
+      clip.intendedText = clip.practiceSegment?.text ?? result.text
+    }
     if result.text.isEmpty {
       message = "Couldn’t find speech. Enter the sentence or try again in a quieter place."
     }

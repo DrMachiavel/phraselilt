@@ -17,4 +17,6 @@ Track per category: false corrections among acceptable variants; supported/usefu
 
 A synthetic pipeline sentence (“Please open the browser before the meeting.”) was correctly transcribed with seven timing segments on the development M5. First measured latency was 2.37 s, warm 0.36 s. A process-network-denied run succeeded with installed assets. The observed ~18 MB probe RSS excludes the speech daemon and shared model footprint; it is not total memory usage. This does not constitute a machine-wide offline test or coaching evaluation.
 
-Release verification still needs human VoiceOver listening/focus review, real input-device changes, sleep/lock interruption, cross-application shortcut checks, noisy human speech, and a full machine-network-disabled run. Keep assessment unavailable while the acoustic gate remains unresolved.
+Release verification still needs human VoiceOver listening/focus review, real input-device changes, sleep/lock interruption, parallel-capture and source-boundary checks, noisy human speech, and a full machine-network-disabled run. Keep assessment unavailable while the acoustic gate remains unresolved.
+
+Companion capture adds an independent release gate: public activity readability alone is insufficient. Validate concurrent input with the actual dictation app and hardware; assess onset truncation, trailing cutoff, standby microphone state, headset profiles and unchanged text insertion. See COMPANION.md. Audio from these checks stays outside the repository and CI.
